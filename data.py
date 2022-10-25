@@ -12,6 +12,7 @@ from keras.preprocessing import sequence
 offset = 20
 max_lenght = 2000
 
+# Map the activity to offset
 cookActivities = {"cairo": {"Other": offset,
                             "Work": offset + 1,
                             "Take_medicine": offset + 2,
@@ -180,6 +181,7 @@ def load_dataset(filename):
                 if 'M' == f_info[2][0] or 'D' == f_info[2][0] or 'T' == f_info[2][0]:
                     # choose only M D T sensors, avoiding unexpected errors
                     if not ('.' in str(np.array(f_info[0])) + str(np.array(f_info[1]))):
+                        # Avoid errors at the timestamp
                         f_info[1] = f_info[1] + '.000000'
                     timestamps.append(datetime.strptime(str(np.array(f_info[0])) + str(np.array(f_info[1])),
                                                         "%Y-%m-%d%H:%M:%S.%f"))
@@ -208,6 +210,7 @@ def load_dataset(filename):
             temperature.append(float(element))
         except ValueError:
             pass
+    # Create index for sensors and activities
     sensorsList = sorted(set(sensors))
     dictSensors = {}
     for i, sensor in enumerate(sensorsList):
@@ -241,6 +244,8 @@ def load_dataset(filename):
     YY = []
     X = []
     Y = []
+    # XX: create dictionary for sensors in embedded number from the dictObs dict
+    # YY: The corresponding acitivity index
     for kk, s in enumerate(sensors):
         if "T" in s:
             XX.append(dictObs[s + str(round(float(values[kk]), 1))])
@@ -249,6 +254,8 @@ def load_dataset(filename):
         YY.append(dictActivities[activities[kk]])
 
     x = []
+    # x: the list containing the corresponding sensor sequence for activities at i
+    # y: the list containing activities sequence
     for i, y in enumerate(YY):
         if i == 0:
             Y.append(y)
@@ -309,7 +316,14 @@ if __name__ == '__main__':
 
 
 def getData(datasetName):
+    np_load_old = np.load
+
+    np.load = lambda *a,**k: np_load_old(*a, allow_pickle=True, **k)
+
     X = np.load('./npy/' + datasetName + '-x.npy')
     Y = np.load('./npy/' + datasetName + '-y.npy')
     dictActivities = np.load('./npy/' + datasetName + '-labels.npy').item()
+
+    # restore np.load for future normal usage
+
     return X, Y, dictActivities

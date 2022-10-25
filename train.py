@@ -12,11 +12,12 @@ from sklearn.utils import compute_class_weight
 
 import data
 import models
+import sys
 
 # fix random seed for reproducibility
 seed = 7
 units = 64
-epochs = 200
+epochs = 20
 
 if __name__ == '__main__':
     """The entry point"""
@@ -28,6 +29,8 @@ if __name__ == '__main__':
     print(data.datasetsNames)
     for dataset in data.datasetsNames:
         X, Y, dictActivities = data.getData(dataset)
+
+        Y = Y.astype('int') 
 
         cvaccuracy = []
         cvscores = []
@@ -70,18 +73,21 @@ if __name__ == '__main__':
             model = models.compileModel(model)
             modelname = model.name
 
+            checkpoint_filepath = './tmp/checkpoint/'
+
             currenttime = datetime.utcnow().strftime('%Y%m%d-%H%M%S')
             csv_logger = CSVLogger(
-                model.name + '-' + dataset + '-' + str(currenttime) + '.csv')
+                checkpoint_filepath + model.name + '-' + dataset + '-' + str(currenttime) + '.csv')
             model_checkpoint = ModelCheckpoint(
-                model.name + '-' + dataset + '-' + str(currenttime) + '.h5',
-                monitor='acc',
+                checkpoint_filepath + model.name + '-' + dataset + '-' + str(currenttime) + '.h5',
+                monitor='val_accuracy',
+                mode='max',
                 save_best_only=True)
 
             # train the model
             print('Begin training ...')
-            class_weight = compute_class_weight('balanced', np.unique(Y),
-                                                Y)  # use as optional argument in the fit function
+            class_weight = compute_class_weight(class_weight='balanced', classes=np.unique(Y),
+                                                y=Y)  # use as optional argument in the fit function
 
             model.fit(X_train_input, Y[train], validation_split=0.2, epochs=epochs, batch_size=64, verbose=1,
                       callbacks=[csv_logger, model_checkpoint])
@@ -94,7 +100,8 @@ if __name__ == '__main__':
             print('Report:')
             target_names = sorted(dictActivities, key=dictActivities.get)
 
-            classes = model.predict_classes(X_test_input, batch_size=64)
+            classes = model.predict(X_test_input, batch_size=64)
+            # TODO modify the predict result
             print(classification_report(list(Y[test]), classes, target_names=target_names))
             print('Confusion matrix:')
             labels = list(dictActivities.values())
