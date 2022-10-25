@@ -10,14 +10,14 @@ from sklearn.metrics import confusion_matrix, classification_report
 from sklearn.model_selection import StratifiedKFold
 from sklearn.utils import compute_class_weight
 
-import data
+import data_hh
 import models
 import sys
 
 # fix random seed for reproducibility
 seed = 7
 units = 64
-epochs = 20
+epochs = 200
 
 if __name__ == '__main__':
     """The entry point"""
@@ -26,9 +26,9 @@ if __name__ == '__main__':
     p.add_argument('--v', dest='model', action='store', default='', help='deep model')
     args = p.parse_args()
 
-    print(data.datasetsNames)
-    for dataset in data.datasetsNames:
-        X, Y, dictActivities = data.getData(dataset)
+    print(data_hh.datasetsNames)
+    for dataset in data_hh.datasetsNames:
+        X, Y, dictActivities = data_hh.getData(dataset)
 
         Y = Y.astype('int') 
 
@@ -56,15 +56,15 @@ if __name__ == '__main__':
             no_activities = len(dictActivities)
 
             if args_model == 'LSTM':
-                model = models.get_LSTM(input_dim, units, data.max_lenght, no_activities)
+                model = models.get_LSTM(input_dim, units, data_hh.max_lenght, no_activities)
             elif args_model == 'biLSTM':
-                model = models.get_biLSTM(input_dim, units, data.max_lenght, no_activities)
+                model = models.get_biLSTM(input_dim, units, data_hh.max_lenght, no_activities)
             elif args_model == 'Ensemble2LSTM':
-                model = models.get_Ensemble2LSTM(input_dim, units, data.max_lenght, no_activities)
+                model = models.get_Ensemble2LSTM(input_dim, units, data_hh.max_lenght, no_activities)
             elif args_model == 'CascadeEnsembleLSTM':
-                model = models.get_CascadeEnsembleLSTM(input_dim, units, data.max_lenght, no_activities)
+                model = models.get_CascadeEnsembleLSTM(input_dim, units, data_hh.max_lenght, no_activities)
             elif args_model == 'CascadeLSTM':
-                model = models.get_CascadeLSTM(input_dim, units, data.max_lenght, no_activities)
+                model = models.get_CascadeLSTM(input_dim, units, data_hh.max_lenght, no_activities)
             else:
                 print('Please get the model name '
                       '(eg. --v [LSTM | biLSTM | Ensemble2LSTM | CascadeEnsembleLSTM | CascadeLSTM])')
@@ -100,12 +100,15 @@ if __name__ == '__main__':
             print('Report:')
             target_names = sorted(dictActivities, key=dictActivities.get)
 
-            classes = model.predict(X_test_input, batch_size=64)
+            predictions = model.predict(X_test_input, batch_size=64)
+            print(predictions)
+            classes = np.argmax(predictions, axis=1)
+
             # TODO modify the predict result
             print(classification_report(list(Y[test]), classes, target_names=target_names))
             print('Confusion matrix:')
             labels = list(dictActivities.values())
-            print(confusion_matrix(list(Y[test]), classes, labels))
+            print(confusion_matrix(list(Y[test]), classes, labels=labels))
 
             cvaccuracy.append(scores[1] * 100)
             cvscores.append(scores)

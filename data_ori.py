@@ -325,5 +325,6 @@ def getData(datasetName):
     dictActivities = np.load('./npy/' + datasetName + '-labels.npy').item()
 
     # restore np.load for future normal usage
+    np.load = np_load_old
 
     return X, Y, dictActivities
