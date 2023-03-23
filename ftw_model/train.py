@@ -77,7 +77,7 @@ def preprocess_features(features, method) -> np.ndarray:
         return np.array(out)
     return np.array([])
 
-def calculate_metrics(pred, target, threshold=0.3):
+def calculate_metrics(pred, target, threshold=0.1):
     pred = np.array(pred > threshold, dtype=float)
     return {'micro/precision': precision_score(y_true=target, y_pred=pred, average='micro'),
             'micro/recall': recall_score(y_true=target, y_pred=pred, average='micro'),
@@ -160,9 +160,9 @@ def main(args):
             my_freqs = median_all/(np.float64(medians)+(10E-14))
 
             print(my_freqs.shape)
-            rnn = Multi_out_LSTM(processed_features.shape[1], input_size, n_hidden, n_categories, n_layer, (model == 'BiLSTM'))
+            rnn = Multi_out_LSTM(processed_features.shape[1], input_size, n_hidden, n_categories, n_layer + 2, (model == 'BiLSTM'))
             print(rnn.to(device))
-            learning_rate = 0.0001
+            learning_rate = 0.00005
             optimizer = optim.Adam(rnn.parameters(),lr=learning_rate, weight_decay=1e-5)
             train, test = list(tsv.split(processed_features, activities))[-1]
             X_train, X_test, y_train, y_test = processed_features[train], processed_features[test], activities[train], activities[test]
@@ -189,6 +189,8 @@ def main(args):
 
             # criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(my_freqs).to(device))
             criterion = FocalLoss(torch.tensor(my_freqs).to(device))
+            # criterion = nn.BCEWithLogitsLoss()
+
             best_f1_score = 0
             best_classification_report = None
             best_epoch = 0
@@ -199,6 +201,7 @@ def main(args):
             dev_features, dev_labels, dev_times = torch.tensor(X_test, dtype=torch.float32), torch.tensor(y_test, dtype=torch.float32), torch.tensor(t_test, dtype=torch.float32)
             
 
+            n_iters = 200
             for iter in trange(1, n_iters + 1):
                 train_dataset = DataLoader(ActivityDataset(train_features, train_labels, train_times), batch_size=args.batch, shuffle=False)
                 dev_dataset = DataLoader(ActivityDataset(dev_features, dev_labels, dev_times), batch_size=len(y_test), shuffle=False)
@@ -211,11 +214,12 @@ def main(args):
 
                     features = features.to(device).float()
                     labels = labels.to(device).float()
+                    train_time = train_time.to(device).float()
 
                 # dev_tensor = dev_tensor.to(device)
                 # dev_labels = dev_labels.to(device).unsqueeze(1)
                             
-                    output, logits = rnn(features)
+                    output, logits = rnn(features, train_time)
                     loss = criterion(logits, labels)
                     loss.backward()
                     optimizer.step()
@@ -227,15 +231,17 @@ def main(args):
                 validation_loss = None
                 #scheduler.step()
                 
-                for dev_tensor, dev_activities in dev_dataset:
+                for dev_tensor, dev_activities, dev_time in dev_dataset:
                     dev_tensor = dev_tensor.to(device)
                     dev_labels = dev_activities.to(device)
+                    dev_time = dev_time.to(device)
+
                     if len(dev_labels.shape) < 2:
                         dev_labels = dev_labels.unsqueeze(1)
 
                     rnn.eval()
                     with torch.no_grad():
-                        prediction, logits = rnn(dev_tensor)
+                        prediction, logits = rnn(dev_tensor, dev_time)
                         
                         pred = prediction.cpu().detach().numpy().round()
 
@@ -245,10 +251,13 @@ def main(args):
                         #backprop
                         if result['macro/f1'] > best_f1_score:
                             best_f1_score = result['macro/f1']
-                            best_classification_report = result
+                            best_report = result
                             best_epoch = iter
                             best_validation_loss = validation_loss
+                            best_classification_report = classification_report(dev_activities.cpu(), pred, digits=4, output_dict=True)
 
+
+                    print_every = 1
                     if iter%print_every == 0:
                         accur.append(result)
                         
@@ -266,7 +275,9 @@ def main(args):
                     all_losses.append(current_loss / plot_every)
                     current_loss = 0
             # result_file.write(str(best_classification_report) + '\n')
-            pd.DataFrame(best_classification_report).round(4).to_csv(result_file + 'multi-label.tsv', sep='\t')
+            pd.DataFrame(best_report, index=[0]).round(4).to_csv(os.path.join(new_result_file, 'multi-label-report1.tsv'), sep='\t')
+            pd.DataFrame(best_classification_report).round(4).to_csv(os.path.join(new_result_file, 'multi-label-report1.tsv'), sep='\t')
+
         else:
             n_categories = 1
             # train, test = list(tsv.split(processed_features, activities))[-1]
@@ -302,7 +313,7 @@ def main(args):
                     rnn = LSTM_1d(processed_features.shape[1], input_size, n_hidden, n_categories, n_layer, (model == 'BiLSTM'))
                 else:
                     rnn = LSTM(input_size,n_hidden,n_categories,n_layer, (model == 'BiLSTM'))
-                early_stopper = EarlyStopper(patience=5 * print_every, min_delta=0)
+                early_stopper = EarlyStopper(patience=20, min_delta=0)
 
                 best_model = deepcopy(rnn)
 
@@ -398,13 +409,13 @@ def main(args):
                             # print(classification_report(dev_activities, pred, digits=4))
                     
                     current_loss += validation_loss.item()
-                    # if early_stopper.early_stop(validation_loss):
-                    #     for param in best_model.parameters():
-                    #         param.requires_grad = False
-                    #     models.append(best_model)
-
-                    #     # result_file.write("Best epoch at " + str(best_epoch) + ". Early stopping at epoch " + str(iter))
-                    #     break
+                    if early_stopper.early_stop(acc):
+                        # for param in best_model.parameters():
+                        #     param.requires_grad = False
+                        models.append(best_model)
+                        
+                        # result_file.write("Best epoch at " + str(best_epoch) + ". Early stopping at epoch " + str(iter))
+                        break
 
                     if iter % plot_every == 0:
                         all_losses.append(current_loss / plot_every)
