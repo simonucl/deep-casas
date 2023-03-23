@@ -15,12 +15,16 @@ class LSTM(nn.Module):
         self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
         self.output_dim = output_dim
         self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional)
+        self.time2vec = SineActivation(1, input_dim)
+
         self.fc = nn.Linear(hidden_dim,output_dim)
         self.sigmoid = nn.Sigmoid()
         # self.bn = nn.BatchNorm1d(32)
         
-    def forward(self,inputs):
+    def forward(self,inputs, times):
         # x = self.bn(inputs)
+        times_vec = self.time2vec(times)
+        inputs = torch.add(inputs, 0.002 * times_vec)
         lstm_out,(hn,cn) = self.lstm(inputs)
         out = self.fc(lstm_out)
         # print(out.shape)
@@ -39,12 +43,12 @@ class LSTM_1d(nn.Module):
         # nn.init.normal_(self.softconv, 0, 1)
         self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
         self.output_dim = output_dim
-        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional)
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
         self.fc = nn.Linear(hidden_dim,output_dim)
         self.sigmoid = nn.Sigmoid()
         self.bn = nn.BatchNorm1d(10)
         
-    def forward(self,inputs, times):
+    def forward(self, inputs, times):
         # x = self.bn(inputs)
         feature_1d = self.softconv(inputs).squeeze()
         times_vec = self.time2vec(times)

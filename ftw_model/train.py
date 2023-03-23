@@ -9,6 +9,7 @@ import sys
 from datetime import datetime
 from torch.utils.data import Dataset, DataLoader
 from copy import deepcopy
+import time
 
 from numpy.typing import NDArray
 from over_sample import get_minority_instace, MLSMOTE
@@ -24,26 +25,6 @@ from sklearn.model_selection import KFold, TimeSeriesSplit, train_test_split
 from tqdm import tqdm, trange
 
 seed=42
-activitiy_mapping = {'Sleep': 0,
-    'Bed_Toilet_Transition': 1,
-    'Toilet': 2,
-    'Take_Medicine': 3,
-    'Dress': 4,
-    'Work': 5,
-    'Cook': 6,
-    'Eat': 7,
-    'Wash_Dishes': 8,
-    'Relax': 9,
-    'Personal_Hygiene': 10,
-    'Bathe': 11,
-    'Groom': 12,
-    'Drink': 13,
-    'Leave_Home': 14,
-    'Enter_Home': 15,
-    'Phone': 16,
-    'Other_Activity': 17}
-FTWs = [720, 540, 360, 180, 60, 30, 15, 5, 3, 2, 1, 0, 0]
-ftw_window = 10
 
 class ActivityDataset(Dataset):
   """
@@ -83,7 +64,9 @@ def preprocess_features(features, method) -> np.ndarray:
     elif method == 'mean_with_weight':
         out = []
         for instance in features:
-            out.append(np.sum([vector*((i+1)/len(instance)) for i, vector in enumerate(instance)], axis=0))
+            weights = [1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 8, 7]
+            # out.append(np.sum([vector*((i+1)/len(instance)) for i, vector in enumerate(instance)], axis=0))
+            out.append(np.sum([vector*(weights[i]/len(instance)) for i, vector in enumerate(instance)], axis=0))
         return np.array(out)
     elif method == 'mean_with_exp_decay':
         out = []
@@ -136,10 +119,10 @@ def main(args):
 
     #scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10000, gamma=0.1)
 
-    n_iters = 1000
-    print_every = n_iters // 200
-    plot_every =  n_iters // 200
-    batch_size = 16
+    n_iters = 100
+    print_every = n_iters // 10
+    plot_every =  n_iters // 10
+    batch_size = 32
 
     tsv = TimeSeriesSplit(n_splits=3)
     kfold = KFold(n_splits=3)
@@ -149,7 +132,7 @@ def main(args):
     accur = []
 
     # early stopping
-    result_file = './result_new/' + model + '-' + '(' + args.features.rsplit('/')[-1].rsplit('_', 1)[0] + ')' + '_' + args.feature_encoding + '_overlook' + str(args.file_ext) + ('_' + args.delta if args.delta else '')
+    result_file = './result_new1/' + model + '-' + '(' + args.features.rsplit('/')[-1].rsplit('_', 1)[0] + ')' + '_' + args.feature_encoding + '_overlook' + str(args.file_ext) + ('_' + args.delta if args.delta else '') + '_' + str(args.batch)
     if (not os.path.exists(result_file)) or (not os.path.isdir(result_file)):
         os.makedirs(result_file)
     results_dict = []
@@ -159,13 +142,14 @@ def main(args):
         cnn_weights = []
 
     for fold, split in enumerate(list(kfold.split(processed_features, activities))):
+
         results_dict = []
 
         n_categories = len(activitiy_mapping) - 1
 
         ensemble_model_results = torch.tensor([])
 
-        new_result_file = os.path.join(result_file, str(fold))
+        new_result_file = os.path.join(result_file, str(fold + 1))
         os.makedirs(new_result_file, exist_ok=True)
         if args.feature_encoding == 'multi-label':
 
@@ -211,15 +195,17 @@ def main(args):
 
             # train_features, train_labels = torch.tensor(processed_features[train], dtype=torch.float32), torch.tensor(activities[train], dtype=torch.float32)
             # dev_features, dev_labels = torch.tensor(processed_features[test], dtype=torch.float32), torch.tensor(activities[test], dtype=torch.float32)
-            train_features, train_labels, train_time = torch.tensor(X_train, dtype=torch.float32), torch.tensor(y_train, dtype=torch.float32), torch.tensor(t_train, dtype=torch.float32)
-            dev_features, dev_labels, dev_time = torch.tensor(X_test, dtype=torch.float32), torch.tensor(y_test, dtype=torch.float32), torch.tensor(t_test, dtype=torch.float32)
+            train_features, train_labels, train_times = torch.tensor(X_train, dtype=torch.float32), torch.tensor(y_train, dtype=torch.float32), torch.tensor(t_train, dtype=torch.float32)
+            dev_features, dev_labels, dev_times = torch.tensor(X_test, dtype=torch.float32), torch.tensor(y_test, dtype=torch.float32), torch.tensor(t_test, dtype=torch.float32)
+            
+
             for iter in trange(1, n_iters + 1):
-                train_dataset = DataLoader(ActivityDataset(train_features, train_labels, train_time), batch_size=batch_size, shuffle=False)
-                dev_dataset = DataLoader(ActivityDataset(dev_features, dev_labels, dev_time), batch_size=len(y_test), shuffle=False)
+                train_dataset = DataLoader(ActivityDataset(train_features, train_labels, train_times), batch_size=args.batch, shuffle=False)
+                dev_dataset = DataLoader(ActivityDataset(dev_features, dev_labels, dev_times), batch_size=len(y_test), shuffle=False)
 
                 rnn.train()
                 training_loss = 0
-                for features, labels, time in train_dataset:
+                for features, labels, train_time in train_dataset:
                 # train_labels, train_tensor = torch.tensor(train_activities, dtype=torch.float32), torch.tensor(train_features, dtype=torch.float32)
                 # dev_labels, dev_tensor = torch.tensor(dev_activities, dtype=torch.float32), torch.tensor(dev_features, dtype=torch.float32)
 
@@ -305,8 +291,11 @@ def main(args):
             val_losses = []
             models = []
             ensemble_model_results = [None for _ in range(len(activitiy_mapping))]
+            # Track the time it takes to train the model
+            start = time.time()
 
-            for i, mapping in enumerate(list(activitiy_mapping.items())[:-1]):
+            for i, mapping in enumerate(tqdm(list(activitiy_mapping.items())[:-1], total=len(activitiy_mapping) - 1)):
+
                 activity, index = mapping
                 
                 if args.feature_encoding == '1d_cnn':
@@ -345,27 +334,27 @@ def main(args):
                 best_epoch = 0
 
                 val_loss = []
-                train_features, train_labels, train_times = torch.tensor(X_train, dtype=torch.float32), torch.tensor(y_train_act, dtype=torch.float32), torch.tensor(t_train, dtype=torch.float32)
-                dev_features, dev_labels, dev_times = torch.tensor(X_test, dtype=torch.float32), torch.tensor(y_test_act, dtype=torch.float32), torch.tensor(t_test, dtype=torch.float32)
+                train_features, train_labels, train_times = torch.tensor(X_train, dtype=torch.float32), torch.tensor(y_train_act, dtype=torch.float32), torch.tensor(t_train, dtype=torch.int64)
+                dev_features, dev_labels, dev_times = torch.tensor(X_test, dtype=torch.float32), torch.tensor(y_test_act, dtype=torch.float32), torch.tensor(t_test, dtype=torch.int64)
                 for iter in trange(1, n_iters + 1):
-                    train_dataset = DataLoader(ActivityDataset(train_features, train_labels, train_times), batch_size=16, shuffle=False)
+                    train_dataset = DataLoader(ActivityDataset(train_features, train_labels, train_times), batch_size=args.batch, shuffle=False)
                     dev_dataset = DataLoader(ActivityDataset(dev_features, dev_labels, dev_times), batch_size=len(test), shuffle=False)
 
                     rnn.train()
                     training_loss = 0
 
-                    for features, labels, times in train_dataset:
+                    for features, labels, train_time in train_dataset:
                     # train_labels, train_tensor = torch.tensor(train_activities, dtype=torch.float32), torch.tensor(train_features, dtype=torch.float32)
                     # dev_labels, dev_tensor = torch.tensor(dev_activities, dtype=torch.float32), torch.tensor(dev_features, dtype=torch.float32)
 
                         features = features.to(device).float()
                         labels = labels.to(device).unsqueeze(1).float()
-                        times = times.to(device).float()
+                        train_time = train_time.to(device).float()
 
                     # dev_tensor = dev_tensor.to(device)
                     # dev_labels = dev_labels.to(device).unsqueeze(1)
                                 
-                        output, logits = rnn(features, times)
+                        output, logits = rnn(features, train_time)
                         loss = criterion(logits, labels)
                         loss.backward()
                         optimizer.step()
@@ -375,17 +364,17 @@ def main(args):
                     # print(training_loss / len(train_dataset))
                     validation_loss = None
                     #scheduler.step()
-                    for dev_tensor, dev_activities, dev_times in dev_dataset:
+                    for dev_tensor, dev_activities, dev_time in dev_dataset:
                         dev_tensor = dev_tensor.to(device)
                         dev_labels = dev_activities.to(device)
-                        dev_times = dev_times.to(device).float()
+                        dev_time = dev_time.to(device).float()
 
                         if len(dev_labels.shape) < 2:
                             dev_labels = dev_labels.unsqueeze(1)
 
                         rnn.eval()
                         with torch.no_grad():
-                            prediction, logits = rnn(dev_tensor, dev_times)
+                            prediction, logits = rnn(dev_tensor, dev_time)
                             pred =  prediction.reshape(-1).cpu().detach().numpy().round()
 
                             validation_loss = criterion(logits, dev_labels)
@@ -405,17 +394,17 @@ def main(args):
                         if iter%print_every == 0:
                             accur.append(acc)
                             # result_file.write("epoch {}\tloss : {}\t accuracy : {}\n".format(iter,loss,acc))
-                            print("epoch {}\tloss : {}\t accuracy : {}".format(iter,validation_loss,acc))
+                            print("epoch {}\tloss : {}\t F1-score : {}\t Best-F1 : {} ".format(iter,validation_loss,acc, best_f1_score))
                             # print(classification_report(dev_activities, pred, digits=4))
                     
                     current_loss += validation_loss.item()
-                    if early_stopper.early_stop(validation_loss):
-                        for param in best_model.parameters():
-                            param.requires_grad = False
-                        models.append(best_model)
+                    # if early_stopper.early_stop(validation_loss):
+                    #     for param in best_model.parameters():
+                    #         param.requires_grad = False
+                    #     models.append(best_model)
 
-                        # result_file.write("Best epoch at " + str(best_epoch) + ". Early stopping at epoch " + str(iter))
-                        break
+                    #     # result_file.write("Best epoch at " + str(best_epoch) + ". Early stopping at epoch " + str(iter))
+                    #     break
 
                     if iter % plot_every == 0:
                         all_losses.append(current_loss / plot_every)
@@ -444,6 +433,11 @@ def main(args):
                                     'macro_F1': best_classification_report['macro avg']['f1-score'],
                                     'accuracy': best_classification_report['accuracy']})
             # result_file.write(str(best_classification_report) + '\n')
+
+        end = time.time()
+        with open(os.path.join(new_result_file, 'time.txt'), 'w') as f:
+            f.write(str(end - start))
+
         pd.DataFrame(results_dict).round(4).to_csv(os.path.join(new_result_file, 'report.txt'), sep='\t')
         np.save(os.path.join(new_result_file, 'predictions.npy'), np.array(ensemble_model_results))
         np.save(os.path.join(new_result_file, 'activities.npy'), y_test)
@@ -451,7 +445,7 @@ def main(args):
         pd.DataFrame(calculate_metrics(pd.DataFrame(map(lambda x : list(x), np.array(ensemble_model_results)[:y_test.shape[1]])).T.to_numpy(), y_test), index=[0]).to_csv(os.path.join(new_result_file, 'report1.txt'), sep='\t')
         if args.feature_encoding == '1d_cnn':
             np.save(os.path.join(new_result_file, 'cnn_weight.npy'), np.array(cnn_weights))
-        return models
+    return models
     
     def multi_label_train(X_train, X_test, y_train, y_test, models):
         batch_size = 16
@@ -549,6 +543,7 @@ if __name__ == '__main__':
     p.add_argument('--feature_encoding', action='store', default='mean_with_weight', required=True, help='deep model')
     p.add_argument('--delta', action='store', default='20', required=False, help='deep model')
     p.add_argument('--file_ext', action='store', default='', required=False)
+    p.add_argument('--batch', action='store', type=int, default=32, required=False)
 
     # p.add_argument('--cv', dest='need_cv', action='store', default=False, help='whether to do cross validation')
     args = p.parse_args()
