@@ -37,6 +37,7 @@ class LSTM_1d(nn.Module):
         super(LSTM_1d,self).__init__()
         # (4456, 10, 56) -> (4456, 56)
         self.softconv = nn.Conv1d(cnn_dim, 1, kernel_size=1) # 10
+        # self.dropout = nn.Dropout(0.2)
         self.time2vec = SineActivation(1, input_dim)
         # print(self.softconv.bias.shape)
         self.softconv.weight = nn.Parameter(Weibull(torch.tensor([1.0]), torch.tensor([3.0])).sample((1, cnn_dim)))
@@ -418,25 +419,31 @@ class Multi_out_LSTM(nn.Module):
 
     def __init__(self, cnn_dim, input_dim,hidden_dim,output_dim,layer_num, is_bidirectional):
         super(Multi_out_LSTM, self).__init__()
-        self.bn = nn.BatchNorm1d(10)
+        self.bn = nn.BatchNorm1d(cnn_dim)
         self.softconvs = []
         for i in range(output_dim):
             softconv = nn.Conv1d(cnn_dim, 1, kernel_size=1)
             softconv.weight = nn.Parameter(Weibull(torch.tensor([1.0]), torch.tensor([3.0])).sample((1, cnn_dim)))
             self.softconvs.append(self.softconvs)
-        self.softconv = None
+        self.softconv = nn.Conv1d(cnn_dim, 1, kernel_size=1)
+        self.softconv.weight = nn.Parameter(Weibull(torch.tensor([1.0]), torch.tensor([3.0])).sample((1, cnn_dim)))
+        self.time2vec = SineActivation(1, input_dim)
+
         self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
         self.output_dim = output_dim
-        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional)
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
         self.out = nn.Sequential(
-            nn.Dropout(p=0.2),
+            nn.Dropout(p=0.3),
             nn.Linear(in_features=hidden_dim, out_features=output_dim)
         )
         self.sigmoid = nn.Sigmoid()
         
-    def forward(self,inputs):
+    def forward(self,inputs, times):
         x = self.bn(inputs)
         feature_1d = self.softconv(inputs).squeeze()
+
+        times_vec = self.time2vec(times)
+        feature_1d = torch.add(feature_1d, 0.002 * times_vec)
 
         lstm_out,(hn,cn) = self.lstm(feature_1d)
         logits = self.out(lstm_out)
@@ -467,9 +474,9 @@ class EarlyStopper:
         self.patience = patience
         self.min_delta = min_delta
         self.counter = 0
-        self.min_validation_loss = np.inf
+        self.max_f1_score = -np.inf
 
-    def early_stop(self, validation_loss):
+    def early_stop(self, f1_score):
         # if validation_loss < self.min_validation_loss:
         #     self.min_validation_loss = validation_loss
         #     self.counter = 0
@@ -477,10 +484,10 @@ class EarlyStopper:
         #     self.counter += 1
         #     if self.counter >= self.patience:
         #         return True
-        if validation_loss < self.min_validation_loss:
-            self.min_validation_loss = validation_loss
+        if f1_score > self.max_f1_score:
+            self.max_f1_score = f1_score
             self.counter = 0
-        elif validation_loss > (self.min_validation_loss + self.min_delta):
+        elif f1_score > (self.max_f1_score + self.min_delta):
             self.counter += 1
             if self.counter >= self.patience:
                 return True
