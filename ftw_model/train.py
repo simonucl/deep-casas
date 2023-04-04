@@ -13,7 +13,7 @@ import time
 
 from numpy.typing import NDArray
 from over_sample import get_minority_instace, MLSMOTE
-from model import LSTM, EarlyStopper, LSTM_1d, Multi_out_LSTM, FocalLoss, Multi
+from model import LSTM, EarlyStopper, LSTM_1d, Multi_out_LSTM, FocalLoss, Multi, LSTM_1d_2, LSTM_1d_3, LSTM_1d_4, LSTM_1d_5, LSTM_1d_6, LSTM_1d_7, LSTM_1d_8, LSTM_1d_9, LSTM_1d_10, Joint_learning
 import json
 import warnings
 warnings.filterwarnings('ignore')
@@ -49,7 +49,7 @@ class ActivityDataset(Dataset):
     return _x, _y, _t
   
 def preprocess_features(features, method) -> np.ndarray:
-    if method not in ['mean', 'mean_std', 'mean_with_weight', 'mean_std_max_min', 'mean_with_exp_decay']:
+    if method not in ['mean', 'mean_std', 'mean_with_weight', 'mean_std_max_min', 'mean_with_exp_decay', 'joint']:
         raise ValueError('Please double check the method parameter')
 
     preprocessed_features = np.array([])
@@ -75,6 +75,8 @@ def preprocess_features(features, method) -> np.ndarray:
         for instance in features:
             out.append(np.sum([vector*(np.exp(-lamd * i) / denom) for i, vector in enumerate(instance)], axis=0))
         return np.array(out)
+    elif method == 'joint':
+        return features
     return np.array([])
 
 def calculate_metrics(pred, target, threshold=0.3):
@@ -95,7 +97,7 @@ def main(args):
 
     model = args.model
 
-    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    device = torch.device(args.device) if torch.cuda.is_available() else torch.device('cpu')
 
     features = np.load(args.features)
     activities = np.load(args.activities)
@@ -267,6 +269,119 @@ def main(args):
                     current_loss = 0
             # result_file.write(str(best_classification_report) + '\n')
             pd.DataFrame(best_classification_report).round(4).to_csv(result_file + 'multi-label.tsv', sep='\t')
+        elif args.feature_encoding == 'joint':
+
+            print(processed_features[0].shape)
+            input_dim = processed_features[0].shape[0] * processed_features[0].shape[1] 
+            rnn = Joint_learning(None, input_dim, n_hidden, n_categories, 64).to(device)
+            print(rnn.to(device))
+            learning_rate = 0.001
+            optimizer = optim.Adam(rnn.parameters(),lr=learning_rate, weight_decay=1e-5)
+
+            train, test = split
+            X_train, X_test, y_train, y_test = processed_features[train], processed_features[test], activities[train], activities[test]
+            t_train, t_test = times[train], times[test]
+
+            # X_train, X_test, y_train, y_test = train_test_split(processed_features, activities, train_size=0.8, test_size=0.2)
+
+            X_train = np.array(X_train)
+            X_test = np.array(X_test)
+            y_train = np.array(y_train)
+            y_test = np.array(y_test)
+            t_train = np.array(t_train)
+            t_test = np.array(t_test)
+
+            # print('X_train shape:', processed_features[train].shape)
+            # print('y_train shape:', activities[train].shape)
+            print('X_train shape:', X_train.shape)
+            print('y_train shape:', y_train.shape)
+            print('Is CUDA available:', torch.cuda.is_available())
+
+            pred = None
+
+            # result_file.write(activity + '\n')
+
+            # criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(my_freqs).to(device))
+            criterion = nn.BCEWithLogitsLoss()
+            best_f1_score = 0
+            best_classification_report = None
+            best_epoch = 0
+
+            # train_features, train_labels = torch.tensor(processed_features[train], dtype=torch.float32), torch.tensor(activities[train], dtype=torch.float32)
+            # dev_features, dev_labels = torch.tensor(processed_features[test], dtype=torch.float32), torch.tensor(activities[test], dtype=torch.float32)
+            train_features, train_labels, train_times = torch.tensor(X_train, dtype=torch.float32), torch.tensor(y_train, dtype=torch.float32), torch.tensor(t_train, dtype=torch.float32)
+            dev_features, dev_labels, dev_times = torch.tensor(X_test, dtype=torch.float32), torch.tensor(y_test, dtype=torch.float32), torch.tensor(t_test, dtype=torch.float32)
+            
+
+            for iter in trange(1, n_iters + 1):
+                train_dataset = DataLoader(ActivityDataset(train_features, train_labels, train_times), batch_size=args.batch, shuffle=False)
+                dev_dataset = DataLoader(ActivityDataset(dev_features, dev_labels, dev_times), batch_size=len(y_test), shuffle=False)
+
+                rnn.train()
+                training_loss = 0
+                for features, labels, train_time in train_dataset:
+                # train_labels, train_tensor = torch.tensor(train_activities, dtype=torch.float32), torch.tensor(train_features, dtype=torch.float32)
+                # dev_labels, dev_tensor = torch.tensor(dev_activities, dtype=torch.float32), torch.tensor(dev_features, dtype=torch.float32)
+
+                    features = features.to(device).float()
+                    labels = labels.to(device).float()
+
+                # dev_tensor = dev_tensor.to(device)
+                # dev_labels = dev_labels.to(device).unsqueeze(1)
+                            
+                    output, logits = rnn(features)
+                    loss = criterion(logits, labels)
+                    loss.backward()
+                    optimizer.step()
+                    optimizer.zero_grad()
+                    training_loss += (loss.cpu())
+
+                print(training_loss / len(train_dataset))
+
+                validation_loss = None
+                #scheduler.step()
+
+                for dev_tensor, dev_activities in dev_dataset:
+                    dev_tensor = dev_tensor.to(device)
+                    dev_labels = dev_activities.to(device)
+                    if len(dev_labels.shape) < 2:
+                        dev_labels = dev_labels.unsqueeze(1)
+
+                    rnn.eval()
+                    with torch.no_grad():
+                        prediction, logits = rnn(dev_tensor)
+                        
+                        pred = prediction.cpu().detach().numpy().round()
+
+                        validation_loss = criterion(logits, dev_labels)
+                        result = calculate_metrics(pred, dev_activities.cpu().numpy())
+                        
+                        #backprop
+                        if result['macro/f1'] > best_f1_score:
+                            best_f1_score = result['macro/f1']
+                            best_classification_report = result
+                            best_epoch = iter
+                            best_validation_loss = validation_loss
+
+                    if iter%print_every == 0:
+                        accur.append(result)
+                        
+                        # result_file.write("epoch {}\tloss : {}\t accuracy : {}\n".format(iter,loss,acc))
+                        print("epoch {}\tloss : {}\t accuracy : {}".format(iter,validation_loss,result))
+                        # print(classification_report(dev_activities, pred, digits=4))
+                
+                current_loss += validation_loss.item()
+                # if early_stopper.early_stop(validation_loss):
+                #     print("epoch {}\tloss : {}\t accuracy : {}".format(best_epoch,best_validation_loss,best_classification_report))
+                #     # result_file.write("Best epoch at " + str(best_epoch) + ". Early stopping at epoch " + str(iter))
+                #     break
+
+                if iter % plot_every == 0:
+                    all_losses.append(current_loss / plot_every)
+                    current_loss = 0
+            # result_file.write(str(best_classification_report) + '\n')
+            pd.DataFrame(best_classification_report).round(4).to_csv(result_file + 'multi-label.tsv', sep='\t')
+
         else:
             n_categories = 1
             # train, test = list(tsv.split(processed_features, activities))[-1]
@@ -299,7 +414,28 @@ def main(args):
                 activity, index = mapping
                 
                 if args.feature_encoding == '1d_cnn':
-                    rnn = LSTM_1d(processed_features.shape[1], input_size, n_hidden, n_categories, n_layer, (model == 'BiLSTM'))
+                    if args.time_encoding == '0':
+                        rnn = LSTM_1d(processed_features.shape[1], input_size, n_hidden, n_categories, n_layer, (model == 'BiLSTM'))
+                    elif args.time_encoding == '1':
+                        rnn = LSTM_1d_2(processed_features.shape[1], input_size, n_hidden, n_categories, n_layer, (model == 'BiLSTM'))
+                    elif args.time_encoding == '2':
+                        rnn = LSTM_1d_3(processed_features.shape[1], input_size, n_hidden, n_categories, n_layer, (model == 'BiLSTM'))
+                    elif args.time_encoding == '3':
+                        rnn = LSTM_1d_4(processed_features.shape[1], input_size, n_hidden, n_categories, n_layer, (model == 'BiLSTM'))
+                    elif args.time_encoding == '4':
+                        rnn = LSTM_1d_5(processed_features.shape[1], input_size, n_hidden, n_categories, n_layer, (model == 'BiLSTM'))
+                    elif args.time_encoding == '5':
+                        rnn = LSTM_1d_6(processed_features.shape[1], input_size, n_hidden, n_categories, n_layer, (model == 'BiLSTM'))
+                    elif args.time_encoding == '6':
+                        rnn = LSTM_1d_7(processed_features.shape[1], input_size, n_hidden, n_categories, n_layer, (model == 'BiLSTM'))
+                    elif args.time_encoding == '7':
+                        rnn = LSTM_1d_8(processed_features.shape[1], input_size, n_hidden, n_categories, n_layer, (model == 'BiLSTM'))
+                    elif args.time_encoding == '8':
+                        rnn = LSTM_1d_9(processed_features.shape[1], input_size, n_hidden, n_categories, n_layer, (model == 'BiLSTM'))
+                    elif args.time_encoding == '9':
+                        rnn = LSTM_1d_10(processed_features.shape[1], input_size, n_hidden, n_categories, n_layer, (model == 'BiLSTM'))
+                    else:
+                        rnn = LSTM_1d(processed_features.shape[1], input_size, n_hidden, n_categories, n_layer, (model == 'BiLSTM'))
                 else:
                     rnn = LSTM(input_size,n_hidden,n_categories,n_layer, (model == 'BiLSTM'))
                 early_stopper = EarlyStopper(patience=5 * print_every, min_delta=0)
@@ -544,6 +680,8 @@ if __name__ == '__main__':
     p.add_argument('--delta', action='store', default='20', required=False, help='deep model')
     p.add_argument('--file_ext', action='store', default='', required=False)
     p.add_argument('--batch', action='store', type=int, default=32, required=False)
+    p.add_argument('--time_encoding', action='store', default='0', required=False)
+    p.add_argument('--device', action='store', default='cuda:0', required=False)
 
     # p.add_argument('--cv', dest='need_cv', action='store', default=False, help='whether to do cross validation')
     args = p.parse_args()

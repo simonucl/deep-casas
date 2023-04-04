@@ -1,11 +1,11 @@
 encoding_methods=('mean_with_weight' '1d_cnn')
 encoding_methods=('1d_cnn')
 batch_size=(32)
-
+time_encoding=('9')
 deltas=(10)
 # encoding_methods=('1d_cnn')
-for ((i=1; i<=30; i++))
-do
+for ((i=1; i<=12; i++))
+do            
     # Unix command here #
     i1=$i
     if (($i < 10)); then
@@ -16,8 +16,8 @@ do
     #     continue
     # fi
     
-    # run only when i == 1, 4, 5, 6, 7
-    if (($i != 1 && $i != 4 && $i != 5 && $i != 6 && $i != 7)); then
+    # run only when i equals to 2, 9 and 12
+    if (($i != 2 && $i != 9 && $i != 12)); then
         continue
     fi
 
@@ -28,7 +28,9 @@ do
         python extract_feature.py --input "../hh_dataset/hh1$i1/hh1$i1.ann.txt" --delta ${delta} --window FIB_FTWs --output "../hh_dataset/hh_npy/fib_hh1$i1.npy"
         for feature_encoding in ${encoding_methods[@]}; do
             for batch in ${batch_size[@]}; do
-                python train.py --model BiLSTM --features ../hh_dataset/hh_npy/fib_hh1${i1}_feature.npy --activities ../hh_dataset/hh_npy/fib_hh1${i1}_activity.npy --feature_encoding ${feature_encoding} --delta ${delta} --file_ext '_merged_batch_first' --batch ${batch}
+                for time_encoding in ${time_encoding[@]}; do
+                    python train.py --model BiLSTM --features ../hh_dataset/hh_npy/fib_hh1${i1}_feature.npy --activities ../hh_dataset/hh_npy/fib_hh1${i1}_activity.npy --feature_encoding ${feature_encoding} --delta ${delta} --file_ext ${time_encoding} --batch ${batch} --time_encoding ${time_encoding}
+                done
             done
             # python train.py --model BiLSTM --features ../hh_dataset/hh_npy/fib_hh1${i1}_feature.npy --activities ../hh_dataset/hh_npy/fib_hh1${i1}_activity.npy --feature_encoding ${feature_encoding} --delta ${delta} --file_ext '_unmerged_with_time2vec'
         done

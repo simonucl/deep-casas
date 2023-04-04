@@ -14,13 +14,13 @@ def t2v(tau, f, out_features, w, b, w0, b0, arg=None):
     return torch.cat([v1, v2], -1)
 
 class SineActivation(nn.Module):
-    def __init__(self, in_features, out_features):
+    def __init__(self, in_features, out_features, pattern=1440):
         super(SineActivation, self).__init__()
         self.out_features = out_features
         w = torch.Tensor(in_features, out_features-1)
         w0 = torch.Tensor(in_features, 1)
-        torch.Tensor.fill_(w, torch.pi * 2 / 1440)
-        torch.Tensor.fill_(w0, torch.pi * 2 / 1440)
+        torch.Tensor.fill_(w, torch.pi * 2 / pattern)
+        torch.Tensor.fill_(w0, torch.pi * 2 / pattern)
 
         self.w0 = nn.parameter.Parameter(w0)
         self.b0 = nn.parameter.Parameter(torch.zeros(1))
@@ -47,3 +47,13 @@ class CosineActivation(nn.Module):
     def forward(self, tau):
         return t2v(tau, self.f, self.out_features, self.w, self.b, self.w0, self.b0)
     
+class TimeEncoding(nn.Module):
+    def __init__(self, in_features, out_features, pattern=1440):
+        super(TimeEncoding, self).__init__()
+        self.out_features = out_features
+        self.pattern = pattern
+
+    def forward(self, tau):
+        p = [torch.sin(tau / self.pattern ** (2 * i / self.out_features)) if i % 2 == 0 else torch.cos(tau / self.pattern ** (2 * i / self.out_features)) for i in range(self.out_features)]
+        p = torch.concat(p, dim=-1)
+        return p

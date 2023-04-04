@@ -6,7 +6,7 @@ from torch.distributions.weibull import Weibull
 from torch import Tensor
 from typing import Optional, Sequence
 from torch.nn import functional as F
-from time2vec import SineActivation, CosineActivation
+from time2vec import SineActivation, CosineActivation, TimeEncoding
 
 class LSTM(nn.Module):
     
@@ -30,6 +30,7 @@ class LSTM(nn.Module):
         # print(out.shape)
         return self.sigmoid(out), out
 
+# Exp: 0.002 lr
 class LSTM_1d(nn.Module):
     
     def __init__(self,cnn_dim, input_dim,hidden_dim,output_dim,layer_num, is_bidirectional):
@@ -37,6 +38,39 @@ class LSTM_1d(nn.Module):
         # (4456, 10, 56) -> (4456, 56)
         self.softconv = nn.Conv1d(cnn_dim, 1, kernel_size=1) # 10
         self.time2vec = SineActivation(1, input_dim)
+        # print(self.softconv.bias.shape)
+        self.softconv.weight = nn.Parameter(Weibull(torch.tensor([1.0]), torch.tensor([3.0])).sample((1, cnn_dim)))
+        # self.softconv.bias = torch.nn.Parameter(torch.zeros(1))
+        # nn.init.normal_(self.softconv, 0, 1)
+        self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
+        self.output_dim = output_dim
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=True, bidirectional=is_bidirectional, dropout=0.4)
+        self.fc = nn.Linear(hidden_dim,output_dim)
+        self.sigmoid = nn.Sigmoid()
+        self.bn = nn.BatchNorm1d(10)
+        
+    def forward(self, inputs, times):
+        # x = self.bn(inputs)
+        
+        feature_1d = self.softconv(inputs).squeeze()
+        times_vec = self.time2vec(times)
+        # print(feature_1d)
+        # print(times_vec)
+        feature_1d = torch.add(feature_1d, 0.002 * times_vec)
+
+        lstm_out,(hn,cn) = self.lstm(feature_1d)
+        out = self.fc(lstm_out)
+        # print(out.shape)
+        return self.sigmoid(out), out
+    
+# Exp: No time2vec
+class LSTM_1d_2(nn.Module):
+        
+    def __init__(self,cnn_dim, input_dim,hidden_dim,output_dim,layer_num, is_bidirectional):
+        super(LSTM_1d_2,self).__init__()
+        # (4456, 10, 56) -> (4456, 56)
+        self.softconv = nn.Conv1d(cnn_dim, 1, kernel_size=1) # 10
+        # self.time2vec = SineActivation(1, input_dim)
         # print(self.softconv.bias.shape)
         self.softconv.weight = nn.Parameter(Weibull(torch.tensor([1.0]), torch.tensor([3.0])).sample((1, cnn_dim)))
         # self.softconv.bias = torch.nn.Parameter(torch.zeros(1))
@@ -51,15 +85,334 @@ class LSTM_1d(nn.Module):
     def forward(self, inputs, times):
         # x = self.bn(inputs)
         feature_1d = self.softconv(inputs).squeeze()
-        times_vec = self.time2vec(times)
+        # times_vec = self.time2vec(times)
         # print(feature_1d)
         # print(times_vec)
-        feature_1d = torch.add(feature_1d, 0.002 * times_vec)
+        # feature_1d = torch.add(feature_1d, 0.002 * times_vec)
 
         lstm_out,(hn,cn) = self.lstm(feature_1d)
         out = self.fc(lstm_out)
         # print(out.shape)
         return self.sigmoid(out), out
+        
+# 0.005 weight
+class LSTM_1d_3(nn.Module):
+                
+    def __init__(self,cnn_dim, input_dim,hidden_dim,output_dim,layer_num, is_bidirectional):
+        super(LSTM_1d_3,self).__init__()
+        # (4456, 10, 56) -> (4456, 56)
+        self.softconv = nn.Conv1d(cnn_dim, 1, kernel_size=1) # 10
+        self.time2vec = SineActivation(1, input_dim)
+        self.time2vec1 = SineActivation(1, input_dim, pattern=86400)
+
+        # print(self.softconv.bias.shape)
+        self.softconv.weight = nn.Parameter(Weibull(torch.tensor([1.0]), torch.tensor([3.0])).sample((1, cnn_dim)))
+        # self.softconv.bias = torch.nn.Parameter(torch.zeros(1))
+        # nn.init.normal_(self.softconv, 0, 1)
+        self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
+        self.output_dim = output_dim
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
+        self.fc = nn.Linear(hidden_dim,output_dim)
+        self.sigmoid = nn.Sigmoid()
+        self.bn = nn.BatchNorm1d(10)
+        
+    def forward(self, inputs, times):
+        # x = self.bn(inputs)
+        feature_1d = self.softconv(inputs).squeeze()
+        times_vec1 = self.time2vec(times)
+        times_vec2 = self.time2vec1(times)
+
+        # print(feature_1d)
+        # print(times_vec)
+        feature_1d = torch.add(feature_1d, 0.005 * times_vec1)
+
+        lstm_out,(hn,cn) = self.lstm(feature_1d)
+        out = self.fc(lstm_out)
+        # print(out.shape)
+        return self.sigmoid(out), out
+    
+# Day and week pattern
+class LSTM_1d_4(nn.Module):
+                
+    def __init__(self,cnn_dim, input_dim,hidden_dim,output_dim,layer_num, is_bidirectional):
+        super(LSTM_1d_4,self).__init__()
+        # (4456, 10, 56) -> (4456, 56)
+        self.softconv = nn.Conv1d(cnn_dim, 1, kernel_size=1) # 10
+        self.time2vec = SineActivation(1, input_dim)
+        self.time2vec1 = SineActivation(1, input_dim, pattern=86400)
+
+        # print(self.softconv.bias.shape)
+        self.softconv.weight = nn.Parameter(Weibull(torch.tensor([1.0]), torch.tensor([3.0])).sample((1, cnn_dim)))
+        # self.softconv.bias = torch.nn.Parameter(torch.zeros(1))
+        # nn.init.normal_(self.softconv, 0, 1)
+        self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
+        self.output_dim = output_dim
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
+        self.fc = nn.Linear(hidden_dim,output_dim)
+        self.sigmoid = nn.Sigmoid()
+        self.bn = nn.BatchNorm1d(10)
+        
+    def forward(self, inputs, times):
+        # x = self.bn(inputs)
+        feature_1d = self.softconv(inputs).squeeze()
+        times_vec1 = self.time2vec(times)
+        times_vec2 = self.time2vec1(times)
+
+        # print(feature_1d)
+        # print(times_vec)
+        feature_1d = torch.add(feature_1d, 0.002 * times_vec1)
+        feature_1d = torch.add(feature_1d, 0.0001 * times_vec2)
+
+        lstm_out,(hn,cn) = self.lstm(feature_1d)
+        out = self.fc(lstm_out)
+        # print(out.shape)
+        return self.sigmoid(out), out
+    
+# 0.001 weight
+class LSTM_1d_5(nn.Module):
+                
+    def __init__(self,cnn_dim, input_dim,hidden_dim,output_dim,layer_num, is_bidirectional):
+        super(LSTM_1d_5,self).__init__()
+        # (4456, 10, 56) -> (4456, 56)
+        self.softconv = nn.Conv1d(cnn_dim, 1, kernel_size=1) # 10
+        self.time2vec = SineActivation(1, input_dim)
+        self.time2vec1 = SineActivation(1, input_dim, pattern=86400)
+
+        # print(self.softconv.bias.shape)
+        self.softconv.weight = nn.Parameter(Weibull(torch.tensor([1.0]), torch.tensor([3.0])).sample((1, cnn_dim)))
+        # self.softconv.bias = torch.nn.Parameter(torch.zeros(1))
+        # nn.init.normal_(self.softconv, 0, 1)
+        self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
+        self.output_dim = output_dim
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
+        self.fc = nn.Linear(hidden_dim,output_dim)
+        self.sigmoid = nn.Sigmoid()
+        self.bn = nn.BatchNorm1d(10)
+        
+    def forward(self, inputs, times):
+        # x = self.bn(inputs)
+        feature_1d = self.softconv(inputs).squeeze()
+        times_vec1 = self.time2vec(times)
+        times_vec2 = self.time2vec1(times)
+
+        # print(feature_1d)
+        # print(times_vec)
+        feature_1d = torch.add(feature_1d, 0.001 * times_vec1)
+
+        lstm_out,(hn,cn) = self.lstm(feature_1d)
+        out = self.fc(lstm_out)
+        # print(out.shape)
+        return self.sigmoid(out), out
+    
+# 0.01 weight
+class LSTM_1d_6(nn.Module):
+                
+    def __init__(self,cnn_dim, input_dim,hidden_dim,output_dim,layer_num, is_bidirectional):
+        super(LSTM_1d_6,self).__init__()
+        # (4456, 10, 56) -> (4456, 56)
+        self.softconv = nn.Conv1d(cnn_dim, 1, kernel_size=1) # 10
+        self.time2vec = SineActivation(1, input_dim)
+        self.time2vec1 = SineActivation(1, input_dim, pattern=86400)
+
+        # print(self.softconv.bias.shape)
+        self.softconv.weight = nn.Parameter(Weibull(torch.tensor([1.0]), torch.tensor([3.0])).sample((1, cnn_dim)))
+        # self.softconv.bias = torch.nn.Parameter(torch.zeros(1))
+        # nn.init.normal_(self.softconv, 0, 1)
+        self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
+        self.output_dim = output_dim
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
+        self.fc = nn.Linear(hidden_dim,output_dim)
+        self.sigmoid = nn.Sigmoid()
+        self.bn = nn.BatchNorm1d(10)
+        
+    def forward(self, inputs, times):
+        # x = self.bn(inputs)
+        feature_1d = self.softconv(inputs).squeeze()
+        times_vec1 = self.time2vec(times)
+        times_vec2 = self.time2vec1(times)
+
+        # print(feature_1d)
+        # print(times_vec)
+        feature_1d = torch.add(feature_1d, 0.01 * times_vec1)
+
+        lstm_out,(hn,cn) = self.lstm(feature_1d)
+        out = self.fc(lstm_out)
+        # print(out.shape)
+        return self.sigmoid(out), out
+    
+# time-encoding 0.001
+class LSTM_1d_7(nn.Module):
+                
+    def __init__(self,cnn_dim, input_dim,hidden_dim,output_dim,layer_num, is_bidirectional):
+        super(LSTM_1d_7,self).__init__()
+        # (4456, 10, 56) -> (4456, 56)
+        self.softconv = nn.Conv1d(cnn_dim, 1, kernel_size=1) # 10
+        self.time2vec = TimeEncoding(1, input_dim)
+
+        # print(self.softconv.bias.shape)
+        self.softconv.weight = nn.Parameter(Weibull(torch.tensor([1.0]), torch.tensor([3.0])).sample((1, cnn_dim)))
+        # self.softconv.bias = torch.nn.Parameter(torch.zeros(1))
+        # nn.init.normal_(self.softconv, 0, 1)
+        self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
+        self.output_dim = output_dim
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
+        self.fc = nn.Linear(hidden_dim,output_dim)
+        self.sigmoid = nn.Sigmoid()
+        self.bn = nn.BatchNorm1d(10)
+        
+    def forward(self, inputs, times):
+        # x = self.bn(inputs)
+        feature_1d = self.softconv(inputs).squeeze()
+        times_vec1 = self.time2vec(times)
+
+        # print(feature_1d)
+        # print(times_vec)
+        feature_1d = torch.add(feature_1d, 0.001 * times_vec1)
+
+        lstm_out,(hn,cn) = self.lstm(feature_1d)
+        out = self.fc(lstm_out)
+        # print(out.shape)
+        return self.sigmoid(out), out
+    
+# time-encoding 0.002
+class LSTM_1d_8(nn.Module):
+                
+    def __init__(self,cnn_dim, input_dim,hidden_dim,output_dim,layer_num, is_bidirectional):
+        super(LSTM_1d_8,self).__init__()
+        # (4456, 10, 56) -> (4456, 56)
+        self.softconv = nn.Conv1d(cnn_dim, 1, kernel_size=1) # 10
+        self.time2vec = TimeEncoding(1, input_dim)
+
+        # print(self.softconv.bias.shape)
+        self.softconv.weight = nn.Parameter(Weibull(torch.tensor([1.0]), torch.tensor([3.0])).sample((1, cnn_dim)))
+        # self.softconv.bias = torch.nn.Parameter(torch.zeros(1))
+        # nn.init.normal_(self.softconv, 0, 1)
+        self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
+        self.output_dim = output_dim
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
+        self.fc = nn.Linear(hidden_dim,output_dim)
+        self.sigmoid = nn.Sigmoid()
+        self.bn = nn.BatchNorm1d(10)
+        
+    def forward(self, inputs, times):
+        # x = self.bn(inputs)
+        feature_1d = self.softconv(inputs).squeeze()
+        times_vec1 = self.time2vec(times)
+
+        # print(feature_1d)
+        # print(times_vec)
+        feature_1d = torch.add(feature_1d, 0.002 * times_vec1)
+
+        lstm_out,(hn,cn) = self.lstm(feature_1d)
+        out = self.fc(lstm_out)
+        # print(out.shape)
+        return self.sigmoid(out), out
+
+# time-encoding 0.005
+class LSTM_1d_9(nn.Module):
+                
+    def __init__(self,cnn_dim, input_dim,hidden_dim,output_dim,layer_num, is_bidirectional):
+        super(LSTM_1d_9,self).__init__()
+        # (4456, 10, 56) -> (4456, 56)
+        self.softconv = nn.Conv1d(cnn_dim, 1, kernel_size=1) # 10
+        self.time2vec = TimeEncoding(1, input_dim)
+
+        # print(self.softconv.bias.shape)
+        self.softconv.weight = nn.Parameter(Weibull(torch.tensor([1.0]), torch.tensor([3.0])).sample((1, cnn_dim)))
+        # self.softconv.bias = torch.nn.Parameter(torch.zeros(1))
+        # nn.init.normal_(self.softconv, 0, 1)
+        self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
+        self.output_dim = output_dim
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
+        self.fc = nn.Linear(hidden_dim,output_dim)
+        self.sigmoid = nn.Sigmoid()
+        self.bn = nn.BatchNorm1d(10)
+        
+    def forward(self, inputs, times):
+        # x = self.bn(inputs)
+        feature_1d = self.softconv(inputs).squeeze()
+        times_vec1 = self.time2vec(times)
+
+        # print(feature_1d)
+        # print(times_vec)
+        feature_1d = torch.add(feature_1d, 0.005 * times_vec1)
+
+        lstm_out,(hn,cn) = self.lstm(feature_1d)
+        out = self.fc(lstm_out)
+        # print(out.shape)
+        return self.sigmoid(out), out
+    
+# time-encoding 0.01
+class LSTM_1d_10(nn.Module):
+                
+    def __init__(self,cnn_dim, input_dim,hidden_dim,output_dim,layer_num, is_bidirectional):
+        super(LSTM_1d_10,self).__init__()
+        # (4456, 10, 56) -> (4456, 56)
+        self.softconv = nn.Conv1d(cnn_dim, 1, kernel_size=1) # 10
+        self.time2vec = TimeEncoding(1, input_dim)
+
+        # print(self.softconv.bias.shape)
+        self.softconv.weight = nn.Parameter(Weibull(torch.tensor([1.0]), torch.tensor([3.0])).sample((1, cnn_dim)))
+        # self.softconv.bias = torch.nn.Parameter(torch.zeros(1))
+        # nn.init.normal_(self.softconv, 0, 1)
+        self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
+        self.output_dim = output_dim
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
+        self.fc = nn.Linear(hidden_dim,output_dim)
+        self.sigmoid = nn.Sigmoid()
+        self.bn = nn.BatchNorm1d(10)
+        
+    def forward(self, inputs, times):
+        # x = self.bn(inputs)
+        feature_1d = self.softconv(inputs).squeeze()
+        times_vec1 = self.time2vec(times)
+
+        # print(feature_1d)
+        # print(times_vec)
+        feature_1d = torch.add(feature_1d, 0.01 * times_vec1)
+
+        lstm_out,(hn,cn) = self.lstm(feature_1d)
+        out = self.fc(lstm_out)
+        # print(out.shape)
+        return self.sigmoid(out), out
+    
+class Joint_learning(nn.Module):
+    def __init__(self, cnn_dim, input_dim, hidden_dim, output_dim, fusion_dim):
+        super(Joint_learning, self).__init__()
+        self.lstm = nn.LSTM(input_dim, hidden_dim, 2, batch_first=True, dropout=0.4)
+        self.lstm_dense = nn.Linear(hidden_dim, fusion_dim)
+
+        self.cnn1 = nn.Conv1d(input_dim, 64, kernel_size=3, stride=1)
+        self.cnn2 = nn.Conv1d(64, 64, kernel_size=3, stride=1)
+        self.cnn_dense = nn.Linear(64, fusion_dim)
+
+        self.shared_fc = nn.Linear(fusion_dim, fusion_dim)
+        self.relu = nn.ReLU()
+        self.fc = nn.Linear(fusion_dim, output_dim)
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, inputs):
+        # x = self.bn(inputs)
+        # flatten inputs
+        print(inputs.shape)
+        inputs = inputs.view(inputs.shape[0], -1)
+        lstm_out, (hn, cn) = self.lstm(inputs)
+        lstm_out = self.lstm_dense(lstm_out)
+
+        # stack itself 3 times
+        inputs = torch.stack([inputs, inputs, inputs], dim=-1)
+        print(inputs.shape)
+
+        cnn_out = self.cnn1(inputs)
+        print(cnn_out.shape)
+        cnn_out = self.cnn2(cnn_out)
+        cnn_out = self.cnn_dense(cnn_out)
+
+        out = torch.add(lstm_out, cnn_out)
+        out = self.relu(self.shared_fc(out))
+        out = self.fc(out)
+
+        return self.softmax(out), out
     
 class Multi_out_LSTM(nn.Module):
 

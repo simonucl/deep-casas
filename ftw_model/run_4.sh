@@ -16,10 +16,11 @@ do
     #     continue
     # fi
     
-    # run only when i == 1, 4, 5, 6, 7
-    if (($i != 1 && $i != 4 && $i != 5 && $i != 6 && $i != 7)); then
+    # run only when i == 21 - 30
+    if (($i != 21 && $i != 23 && $i != 22 && $i != 25 && $i != 26 && $i != 27 && $i != 28 && $i != 29 && $i != 30)); then
         continue
     fi
+
 
     echo $i1
 # python extract_feature.py --input "../hh_dataset/hh1$i1/hh1$i1.ann.txt" --delta 20 --window ESTWs --output "../hh_dataset/hh_npy/estw_hh1$i1.npy"

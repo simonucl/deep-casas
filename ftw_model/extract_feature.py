@@ -78,6 +78,20 @@ activity_mapping_dict = {
         "Groom" : "Bathe",
         "Work_At_Table": "Work",
     },
+    "hh106":{
+        "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Groom" : "Bathe",
+        "Work_At_Table": "Work",
+        "Work_At_Computer": "Work",
+    },
         "hh107":{
         "Cook_Breakfast": "Cook",
         "Cook_Lunch": "Cook",
@@ -148,6 +162,19 @@ activity_mapping_dict = {
         "Groom": "Personal_Hygiene",
     },
 
+    "hh113":{
+        "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Work_At_Table": "Work",
+        "Work_At_Computer": "Work",
+    },
     "hh114":{
             "Cook_Breakfast": "Cook",
         "Cook_Lunch": "Cook",
@@ -160,6 +187,20 @@ activity_mapping_dict = {
         "Wash_Dinner_Dishes": "Wash_Dishes",
         "Work_At_Table": "Work",
     },
+    "hh115":{
+        "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Work_At_Table": "Work",
+        "Work_At_Computer": "Work",
+    },
+
     "hh116":{
         "Cook_Lunch": "Cook",
         "Cook_Dinner": "Cook",
@@ -171,6 +212,19 @@ activity_mapping_dict = {
         "Work_On_Table": "Work",
         "Groom": "Personal_Hygiene",
         # "Toilet": "Bed_Toilet_Transition",
+    },
+    "hh117":{
+        "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Work_At_Table": "Work",
+        "Work_At_Computer": "Work",
     },
     "hh118":{
         "Cook_Lunch": "Cook",
@@ -238,6 +292,8 @@ activity_mapping_dict = {
         "Groom": "Personal_Hygiene",
         "Work_At_Table": "Work",
     },
+    "hh124":{
+    },
     "hh125":{
     "Eat_Breakfast": "Eat",
     "Eat_Lunch": "Eat",
@@ -298,11 +354,18 @@ activity_mapping_dict = {
     {
     "Cook_Breakfast": "Cook",
     "Cook_Lunch": "Cook",
+    "Cook_Dinner": "Cook",
+    "Eat_Breakfast": "Eat",
+    "Eat_Lunch": "Eat",
+    "Eat_Dinner": "Eat",
+    "Wash_Breakfast_Dishes": "Wash_Dishes",
+    "Wash_Lunch_Dishes": "Wash_Dishes",
+    "Wash_Dinner_Dishes": "Wash_Dishes",
+    "Work_On_Computer": "Work",
     }
                                                                    }
-# anchor_labels = ['Bathe', 'Enter_home', 'Wash_Dishes', 'Relax', 'Work', 'Sleep', 'Leave_home', 'Cook', 'Eat', 'Personal_Hygiene', 'Bed_Toilet_Transition']
-anchor_labels = None
-dropping_labels = ['Work_On_Computer', 'Work', 'Take_Medicine', 'Work_At_Desk',
+
+dropping_labels = ['Work_On_Computer', 'Take_Medicine', 'Work_At_Desk',
         'Go_To_Sleep', 'Wake_Up', 'Exercise', 'Nap', 'Laundry', 'r1.Sleep',
        'r1.Cook_Breakfast', 'r2.Personal_Hygiene', 'r2.Eat_Breakfast',
        'r2.Dress']
@@ -417,6 +480,11 @@ def computing_feature_wo(input_file, delta=20):
     return features, activities
 
 def computing_feature(args):
+    if args.merged:
+        anchor_labels = ['Bathe', 'Enter_home', 'Wash_Dishes', 'Relax', 'Work', 'Sleep', 'Leave_home', 'Cook', 'Eat', 'Personal_Hygiene', 'Bed_Toilet_Transition']
+    else:
+        anchor_labels = None
+        
     ann_dataset = pd.read_csv(args.input_file, sep='\t')
 
     dataset_name = args.input_file.rsplit('/', 1)[1].split('.')[0]
@@ -426,13 +494,14 @@ def computing_feature(args):
 
     ann_dataset.columns = ann_columns
 
-    # activity_mapping = activity_mapping_dict[dataset_name]
+    if args.merged:
+        activity_mapping = activity_mapping_dict[dataset_name]
 
-    # ann_dataset['Activity'] = ann_dataset['Activity'].apply(lambda x: activity_mapping[x] if x in activity_mapping else x)
+        ann_dataset['Activity'] = ann_dataset['Activity'].apply(lambda x: activity_mapping[x] if x in activity_mapping else x)
 
     # filter out the activities that are not in the anchor labels
-    # if anchor_labels:
-    #     ann_dataset = ann_dataset[ann_dataset['Activity'].isin(anchor_labels)]
+    if args.merged:
+        ann_dataset = ann_dataset[ann_dataset['Activity'].isin(anchor_labels)]
 
     if dropping_labels:
         ann_dataset = ann_dataset[~ann_dataset['Activity'].isin(dropping_labels)]
@@ -456,7 +525,11 @@ def computing_feature(args):
     with open(feature_out, 'w') as f:
         json.dump(activity2id, f)
 
-    ann_dataset['Date & Time'] = pd.to_datetime(ann_dataset['Date & Time'], format='%Y-%m-%d %H:%M:%S')
+    
+    ann_dataset['Date & Time'] = pd.to_datetime(ann_dataset['Date & Time'], format='%Y-%m-%d %H:%M:%S', errors='coerce')
+    # filter out the rows with invalid date
+    ann_dataset = ann_dataset[~ann_dataset['Date & Time'].isnull()]
+    
     start_time, end_time = ann_dataset['Date & Time'].min(), ann_dataset['Date & Time'].max()
     timeframed_dataset = ann_dataset.set_index(['Date & Time'])
 
@@ -466,16 +539,22 @@ def computing_feature(args):
     activities = np.zeros((number_of_time_window, len(activity2id)-1))
     times = np.zeros((number_of_time_window, 1))
 
-    for i in range(number_of_time_window):
+    for i in trange(number_of_time_window):
         activity_within_range = timeframed_dataset[start_time+i*delta: start_time+(i+1)*delta]['Activity'].unique()
         times[i] = i * float(args.delta)
         for j in activity_within_range:
             if j == "Other_Activity":
+                # activities[i][activity2id[j]] = 1
                 continue
             elif anchor_labels and (j not in anchor_labels):
                 continue
             else:
                 activities[i][activity2id[j]] = 1
+
+    activity_out = args.output_path.rsplit('.', 1)[0] + '_activity.npy'
+
+    np.save(activity_out, activities)
+
 
     sensors_list = list(filter(lambda x : (x[0] != 'T'), timeframed_dataset['Sensor ID'].unique()))
     sensor2id = {sensor: i for i , sensor in enumerate(sensors_list)}
@@ -541,6 +620,7 @@ if __name__ == '__main__':
     p.add_argument('--delta', action='store', dest='delta', default='10', required=True, help='deep model')
     p.add_argument('--output', dest='output_path', action='store', default='./outputs', required=False)
     p.add_argument('--window', dest='window', action='store', default='FIB_FTWs', required=False)
+    p.add_argument('--merged', dest='merged', action='store', default=False, required=False)
     # p.add_argument('--cv', dest='need_cv', action='store', default=False, help='whether to do cross validation')
     args = p.parse_args()
     computing_feature(args)

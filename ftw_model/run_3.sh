@@ -16,8 +16,8 @@ do
     #     continue
     # fi
     
-    # run only when i == 1, 4, 5, 6, 7
-    if (($i != 1 && $i != 4 && $i != 5 && $i != 6 && $i != 7)); then
+    # run only when i == 2, 3, 8, 9, 10, 11, 12, 14
+    if (($i != 15 )); then
         continue
     fi
 

@@ -1,6 +1,8 @@
 encoding_methods=('mean_with_weight' '1d_cnn')
 encoding_methods=('1d_cnn')
-batch_size=(32)
+encoding_methods=('joint')
+
+batch_size=(10)
 
 deltas=(10)
 # encoding_methods=('1d_cnn')
@@ -16,8 +18,8 @@ do
     #     continue
     # fi
     
-    # run only when i == 1, 4, 5, 6, 7
-    if (($i != 1 && $i != 4 && $i != 5 && $i != 6 && $i != 7)); then
+    # run only when i == 2
+    if (($i != 1)); then
         continue
     fi
 
@@ -25,12 +27,11 @@ do
 # python extract_feature.py --input "../hh_dataset/hh1$i1/hh1$i1.ann.txt" --delta 20 --window ESTWs --output "../hh_dataset/hh_npy/estw_hh1$i1.npy"
 # python extract_feature.py --input "../hh_dataset/hh1$i1/hh1$i1.ann.txt" --delta 20 --window SESTWs --output "../hh_dataset/hh_npy/sestw_hh1$i1.npy"
     for delta in ${deltas[@]}; do
-        python extract_feature.py --input "../hh_dataset/hh1$i1/hh1$i1.ann.txt" --delta ${delta} --window FIB_FTWs --output "../hh_dataset/hh_npy/fib_hh1$i1.npy"
+        # python extract_feature.py --input "../hh_dataset/hh1$i1/hh1$i1.ann.txt" --delta ${delta} --window FIB_FTWs --output "../hh_dataset/hh_npy/fib_hh1$i1.npy"
         for feature_encoding in ${encoding_methods[@]}; do
             for batch in ${batch_size[@]}; do
-                python train.py --model BiLSTM --features ../hh_dataset/hh_npy/fib_hh1${i1}_feature.npy --activities ../hh_dataset/hh_npy/fib_hh1${i1}_activity.npy --feature_encoding ${feature_encoding} --delta ${delta} --file_ext '_merged_batch_first' --batch ${batch}
+                python train.py --model BiLSTM --features ../hh_dataset/hh_npy/fib_hh1${i1}_feature.npy --activities ../hh_dataset/hh_npy/fib_hh1${i1}_activity.npy --feature_encoding ${feature_encoding} --delta ${delta} --file_ext '_merged_final' --batch ${batch}
             done
-            # python train.py --model BiLSTM --features ../hh_dataset/hh_npy/fib_hh1${i1}_feature.npy --activities ../hh_dataset/hh_npy/fib_hh1${i1}_activity.npy --feature_encoding ${feature_encoding} --delta ${delta} --file_ext '_unmerged_with_time2vec'
         done
     done
 done

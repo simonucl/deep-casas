@@ -59,15 +59,16 @@ def main(args):
     print('Dataset loaded')
     
     # Load the data
-    X, Y, dictActivities = load_dataset(dataset_path)
+    X, Y, dictActivities, T = load_dataset(dataset_path)
     print('Data loaded')
 
     output_path = '../similarity_matrix/hh_' + dataset_no + '/'
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
-    y_act = np.array([y for y in dictActivities if y != 'Other_Activity'])
-
+    # y_act = np.array([y for y in dictActivities if y != 'Other_Activity'])
+    y_act = np.array([y for y in dictActivities])
+    
     X_activities = [[x for i, x in enumerate(X) if Y[i] == dictActivities[y]] for y in y_act]
     print([len(x) for x in X_activities])
 
@@ -77,6 +78,12 @@ def main(args):
     # Is that any zero length activity?
     print([len(x) for x in X_activities if len(x) == 0])
 
+    # print the number of x in each activity
+    for i, x in enumerate(X_activities):
+        print(y_act[i], len(x))
+
+    import sys
+    sys.exit(1)
 
     # Compute levenshtein distance matrix for activities
     # sim_dist_matrix = np.zeros((len(y_act), len(y_act)))
@@ -127,11 +134,71 @@ def main(args):
     # df = pd.DataFrame(norm_dist_matrix, columns=y_act, index=y_act)
     # df.to_csv(output_path + 'norm_dist_matrix.csv')
 
+def main_other_dataset(args):
+    X, Y, dictActivities = np.load(f'../npy/{args.hh_dataset}-x.npy', allow_pickle=True), np.load(f'../npy/{args.hh_dataset}-y.npy', allow_pickle=True), np.load(f'../npy/{args.hh_dataset}-labels.npy', allow_pickle=True).item()
+    print('Data loaded')
+
+    output_path = '../similarity_matrix/' + args.hh_dataset + '/'
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
+    y_act = np.array([y for y in dictActivities if y != 'Other'])
+
+    X_activities = [[x for i, x in enumerate(X) if Y[i] == dictActivities[y]] for y in y_act]
+    print([len(x) for x in X_activities])
+
+    # X_activities = [[y for y in x if len(y) > np.quantile([len(y) for y in x], 0.2 if len(x) < 600 else 0.5)] for x in X_activities]
+
+    print([len(x) for x in X_activities])
+    # Is that any zero length activity?
+    print([len(x) for x in X_activities if len(x) == 0])
+
+
+    # Compute levenshtein distance matrix for activities
+    # sim_dist_matrix = np.zeros((len(y_act), len(y_act)))
+    # for i in trange(len(y_act)):
+    #     for j in range(i, len(y_act)):
+    #         # Mean of the distances between the words of the two activities
+    #         sim_dist_matrix[i,j] = np.mean([textdistance.levenshtein.distance(x, y) for x in X_activities[i] for y in X_activities[j]])
+    #         sim_dist_matrix[j,i] = sim_dist_matrix[i,j]
+
+    # # Save the similarity matrix in pandas dataframe
+    # df = pd.DataFrame(sim_dist_matrix, columns=y_act, index=y_act)
+    # df.to_csv(output_path + 'sim_dist_matrix.csv')
+
+    # print('Similarity matrix computed')
+
+    
+    # Compute level of similarity between activities
+    sim_matrix = np.zeros((len(y_act), len(y_act)))
+    mp_args = [(i, j, X_activities) for i in range(len(y_act)) for j in range(i, len(y_act))]
+    
+    with mp.Pool(processes=mp.cpu_count()-5) as pool:
+        print ('Computing similarity matrix')
+
+        results = pool.starmap(similarity, mp_args)
+        for i, j, sim in results:
+            sim_matrix[i,j] = sim
+            sim_matrix[j,i] = sim
+
+    # for i in trange(len(y_act)):
+    #     for j in trange(i, len(y_act)):
+    #         # Mean of the distances between the words of the two activities
+    #         sim_matrix[i,j] = np.mean([textdistance.levenshtein.normalized_similarity(x, y) for x in X_activities[i] for y in X_activities[j]])
+    #         sim_matrix[j,i] = sim_matrix[i,j]
+    # Save the similarity matrix in pandas dataframe
+
+    df = pd.DataFrame(sim_matrix, columns=y_act, index=y_act)
+    df.to_csv(output_path + 'sim_matrix.csv')
+
 # Define behaviour when called from command line
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--hh_dataset', type=str, default='1', help='hh dataset number')
     args = parser.parse_args()
-    main(args)
+    if args.hh_dataset in ['cairo', 'milan', 'aruba']:
+        main_other_dataset(args)
+    else:
+        main(args)
     
     
