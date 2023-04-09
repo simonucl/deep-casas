@@ -12,205 +12,357 @@ from keras.preprocessing import sequence
 offset = 20
 max_lenght = 2000
 
-# Map the activity to offset
-activitiesList = ['Bathe','Bed_Toilet_Transition','Cook','Cook_Breakfast','Cook_Dinner',
- 'Cook_Lunch','Dress','Drink', 'Eat', 'Eat_Breakfast', 'Eat_Dinner',
- 'Eat_Lunch', 'Enter_Home', 'Entertain_Guests', 'Evening_Meds', 'Go_To_Sleep',
- 'Groom', 'Leave_Home', 'Morning_Meds', 'Other_Activity', 'Personal_Hygiene',
- 'Phone', 'Read', 'Relax', 'Sleep', 'Sleep_Out_Of_Bed', 'Step_Out', 'Toilet',
- 'Wake_Up', 'Wash_Breakfast_Dishes', 'Wash_Dinner_Dishes', 'Wash_Dishes',
- 'Wash_Lunch_Dishes', 'Watch_TV', 'Work_At_Table']
+mappingActivities = {
+    "hh101":{
+        "Cook_Breakfast": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Toilet": "Personal_Hygiene",
+        "Read": "Relax",
+        "Work_At_Table": "Work",
+    },
+    "hh102":{
+        "Eat": "Other_Activity",
+        "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Groom" : "Bathe",
+        "Work_At_Table": "Work"
+    },
+    "hh103":{
+        "Eat": "Other_Activity",
+        "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Work_At_Table": "Work",
+    },
+        "hh104":{
+        "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Groom" : "Bathe",
+        "Work_At_Table": "Work",
+        "Work_At_Computer": "Work",
+    },        
+    "hh105":{
+        "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Groom" : "Bathe",
+        "Work_At_Table": "Work",
+    },
+    "hh106":{
+        "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Groom" : "Bathe",
+        "Work_At_Table": "Work",
+        "Work_At_Computer": "Work",
+    },
+        "hh107":{
+        "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Groom" : "Bathe",
+        "Work_At_Table": "Work",
+        "Work_At_Computer": "Work",
+    },
+    "hh108":{
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Work_At_Table": "Work",
+        "Work_At_Computer": "Work",
+        "Toliet": "Personal_Hygiene",
+    },
+    "hh109":{
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Cook_Breakfast": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Work_At_Table": "Work",
+    },
+    "hh110":{
+        "Cook_Breakfast": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Work_At_Table": "Work",
+        "Toilet": "Bathe",
+    },
+    "hh111":{
+    "Cook_Breakfast": "Cook",
+    "Cook_Lunch": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Work_At_Desk": "Work",
+        "Work_On_Computer": "Work",
+},
+    "hh112":{
+        "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Work_At_Table": "Work",
+        "Take_Medicine": "Personal_Hygiene",
+        "Toilet": "Personal_Hygiene",
+        "Groom": "Personal_Hygiene",
+    },
 
-# Map the activity to offset
-cookActivities = {"cairo": {"Other": offset,
-                            "Work": offset + 1,
-                            "Take_medicine": offset + 2,
-                            "Sleep": offset + 3,
-                            "Leave_Home": offset + 4,
-                            "Eat": offset + 5,
-                            "Bed_to_toilet": offset + 6,
-                            "Bathing": offset + 7,
-                            "Enter_home": offset + 8,
-                            "Personal_hygiene": offset + 9,
-                            "Relax": offset + 10,
-                            "Cook": offset + 11},
-                  "kyoto7": {"Other": offset,
-                             "Work": offset + 1,
-                             "Sleep": offset + 2,
-                             "Relax": offset + 3,
-                             "Personal_hygiene": offset + 4,
-                             "Cook": offset + 5,
-                             "Bed_to_toilet": offset + 6,
-                             "Bathing": offset + 7,
-                             "Eat": offset + 8,
-                             "Take_medicine": offset + 9,
-                             "Enter_home": offset + 10,
-                             "Leave_home": offset + 11},
-                  "kyoto8": {"Other": offset,
-                             "Bathing": offset + 1,
-                             "Cook": offset + 2,
-                             "Sleep": offset + 3,
-                             "Work": offset + 4,
-                             "Bed_to_toilet": offset + 5,
-                             "Personal_hygiene": offset + 6,
-                             "Relax": offset + 7,
-                             "Eat": offset + 8,
-                             "Take_medicine": offset + 9,
-                             "Enter_home": offset + 10,
-                             "Leave_home": offset + 11}
-    ,
-                  "kyoto11": {"Other": offset,
-                              "Work": offset + 1,
-                              "Sleep": offset + 2,
-                              "Relax": offset + 3,
-                              "Personal_hygiene": offset + 4,
-                              "Leave_Home": offset + 5,
-                              "Enter_home": offset + 6,
-                              "Eat": offset + 7,
-                              "Cook": offset + 8,
-                              "Bed_to_toilet": offset + 9,
-                              "Bathing": offset + 10,
-                              "Take_medicine": offset + 11},
-                  "milan": {"Other": offset,
-                            "Work": offset + 1,
-                            "Take_medicine": offset + 2,
-                            "Sleep": offset + 3,
-                            "Relax": offset + 4,
-                            "Leave_Home": offset + 5,
-                            "Eat": offset + 6,
-                            "Cook": offset + 7,
-                            "Bed_to_toilet": offset + 8,
-                            "Bathing": offset + 9,
-                            "Enter_home": offset + 10,
-                            "Personal_hygiene": offset + 11},
-                  "hh102": {"Other_Activity": offset,
-                            "Work": offset + 1,
-                            "Take_Medicine": offset + 2,
-                            "Sleep": offset + 3,
-                            "Leave_Home": offset + 4,
-                            "Eat": offset + 5,
-                            "Bed_Toilet_Transition": offset + 6,
-                            "Bathe": offset + 7,
-                            "Enter_Home": offset + 8,
-                            "Personal_Hygiene": offset + 9,
-                            "Relax": offset + 10,
-                            "Cook": offset + 11,
-                            "Wash_Dishes": offset + 12,
-                            "Dress": offset + 13,
-                            # "Wake_Up": offset + 14,
-                            "Groom": offset + 14,
-                            "Drink": offset + 15,
-                            "Phone": offset + 16,
-                            # "Go_To_Sleep": offset + 18,
-                            "Toilet": offset + 17
-                  }
-                  }
-mappingActivities = {"cairo": {"": "Other",
-                               "R1 wake": "Other",
-                               "R2 wake": "Other",
-                               "Night wandering": "Other",
-                               "R1 work in office": "Work",
-                               "Laundry": "Work",
-                               "R2 take medicine": "Take_medicine",
-                               "R1 sleep": "Sleep",
-                               "R2 sleep": "Sleep",
-                               "Leave home": "Leave_Home",
-                               "Breakfast": "Eat",
-                               "Dinner": "Eat",
-                               "Lunch": "Eat",
-                               "Bed to toilet": "Bed_to_toilet"},
-                     "kyoto7": {"R1_Bed_to_Toilet": "Bed_to_toilet",
-                                "R2_Bed_to_Toilet": "Bed_to_toilet",
-                                "Meal_Preparation": "Cook",
-                                "R1_Personal_Hygiene": "Personal_hygiene",
-                                "R2_Personal_Hygiene": "Personal_hygiene",
-                                "Watch_TV": "Relax",
-                                "R1_Sleep": "Sleep",
-                                "R2_Sleep": "Sleep",
-                                "Clean": "Work",
-                                "R1_Work": "Work",
-                                "R2_Work": "Work",
-                                "Study": "Other",
-                                "Wash_Bathtub": "Other",
-                                "": "Other"},
-                     "kyoto8": {"R1_shower": "Bathing",
-                                "R2_shower": "Bathing",
-                                "Bed_toilet_transition": "Other",
-                                "Cooking": "Cook",
-                                "R1_sleep": "Sleep",
-                                "R2_sleep": "Sleep",
-                                "Cleaning": "Work",
-                                "R1_work": "Work",
-                                "R2_work": "Work",
-                                "": "Other",
-                                "Grooming": "Other",
-                                "R1_wakeup": "Other",
-                                "R2_wakeup": "Other"},
-                     "kyoto11": {"": "Other",
-                                 "R1_Wandering_in_room": "Other",
-                                 "R2_Wandering_in_room": "Other",
-                                 "R1_Work": "Work",
-                                 "R2_Work": "Work",
-                                 "R1_Housekeeping": "Work",
-                                 "R1_Sleeping_Not_in_Bed": "Sleep",
-                                 "R2_Sleeping_Not_in_Bed": "Sleep",
-                                 "R1_Sleep": "Sleep",
-                                 "R2_Sleep": "Sleep",
-                                 "R1_Watch_TV": "Relax",
-                                 "R2_Watch_TV": "Relax",
-                                 "R1_Personal_Hygiene": "Personal_hygiene",
-                                 "R2_Personal_Hygiene": "Personal_hygiene",
-                                 "R1_Leave_Home": "Leave_Home",
-                                 "R2_Leave_Home": "Leave_Home",
-                                 "R1_Enter_Home": "Enter_home",
-                                 "R2_Enter_Home": "Enter_home",
-                                 "R1_Eating": "Eat",
-                                 "R2_Eating": "Eat",
-                                 "R1_Meal_Preparation": "Cook",
-                                 "R2_Meal_Preparation": "Cook",
-                                 "R1_Bed_Toilet_Transition": "Bed_to_toilet",
-                                 "R2_Bed_Toilet_Transition": "Bed_to_toilet",
-                                 "R1_Bathing": "Bathing",
-                                 "R2_Bathing": "Bathing"},
-                     "milan": {"": "Other",
-                               "Master_Bedroom_Activity": "Other",
-                               "Meditate": "Other",
-                               "Chores": "Work",
-                               "Desk_Activity": "Work",
-                               "Morning_Meds": "Take_medicine",
-                               "Eve_Meds": "Take_medicine",
-                               "Sleep": "Sleep",
-                               "Read": "Relax",
-                               "Watch_TV": "Relax",
-                               "Leave_Home": "Leave_Home",
-                               "Dining_Rm_Activity": "Eat",
-                               "Kitchen_Activity": "Cook",
-                               "Bed_to_Toilet": "Bed_to_toilet",
-                               "Master_Bathroom": "Bathing",
-                               "Guest_Bathroom": "Bathing"},
-                     "hh102": {
-                              "Cook_Breakfast": "Cook",
-                              "Cook_Lunch": "Cook",
-                              "Cook_Dinner": "Cook",
-                              "Eat_Breakfast": "Eat",
-                              "Eat_Lunch": "Eat",
-                              "Eat_Dinner": "Eat",
-                              "Morning_Meds": "Take_Medicine",
-                              "Evening_Meds": "Take_Medicine",
-                              "Wash_Breakfast_Dishes": "Wash_Dishes",
-                              "Wash_Lunch_Dishes": "Wash_Dishes",
-                              "Wash_Dinner_Dishes": "Wash_Dishes",
-                              "Work_At_Table": "Work",
-                              "Watch_TV": "Relax",
-                              "Read": "Relax",
-                              "Entertain_Guests": "Relax",
-                              "Sleep_Out_Of_Bed": "Sleep",
-                              "Step_Out": "Leave_Home",
-                     }
-                     }
+    "hh113":{
+        "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Work_At_Table": "Work",
+        "Work_At_Computer": "Work",
+    },
+    "hh114":{
+            "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Work_At_Table": "Work",
+    },
+    "hh115":{
+        "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Work_At_Table": "Work",
+        "Work_At_Computer": "Work",
+    },
+
+    "hh116":{
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Work_On_Table": "Work",
+        "Groom": "Personal_Hygiene",
+        # "Toilet": "Bed_Toilet_Transition",
+    },
+    "hh117":{
+        "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Work_At_Table": "Work",
+        "Work_At_Computer": "Work",
+    },
+    "hh118":{
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Cok_Breakfast": "Cook",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Eat_Breakfast": "Eat",
+        "Eat": "Other",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Work_On_Table": "Work",
+        "Work_On_Computer": "Work",
+    },
+    "hh119":{
+        "Cook_Dinner": "Cook",
+        "Eat_Dinner": "Eat",
+        "Eat_Lunch": "Eat",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+    },
+    "hh120": {
+        "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+    },
+    "hh121": {
+    "Cook_Breakfast": "Cook",
+    "Cook_Lunch": "Cook",
+    "Cook_Dinner": "Cook",
+    "Eat_Breakfast": "Eat",
+    "Eat_Lunch": "Eat",
+    "Eat_Dinner": "Eat",
+    "Wash_Breakfast_Dishes": "Wash_Dishes",
+    "Wash_Lunch_Dishes": "Wash_Dishes",
+    "Wash_Dinner_Dishes": "Wash_Dishes",
+    "Work_At_Table": "Work",
+    },
+    "hh122": {
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Work_On_Computer": "Work",
+        "Work_At_Table": "Work",
+    },
+    "hh123":{
+        "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Groom": "Personal_Hygiene",
+        "Work_At_Table": "Work",
+    },
+    "hh124":{
+    },
+    "hh125":{
+    "Eat_Breakfast": "Eat",
+    "Eat_Lunch": "Eat",
+    "Eat_Dinner": "Eat",
+    "Toilet": "Personal_Hygiene",
+    },
+    "hh126":{
+        "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Groom": "Bathe",
+        "Work_On_Computer": "Work",
+    },
+    "hh127":
+    {
+        "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat": "Other",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Work_On_Computer": "Work",
+    },
+    "hh128":
+    {
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Work_At_Table": "Work",
+    },
+    "hh129":
+    {   
+        "Cook_Breakfast": "Cook",
+        "Cook_Lunch": "Cook",
+        "Cook_Dinner": "Cook",
+        "Eat_Breakfast": "Eat",
+        "Eat_Lunch": "Eat",
+        "Eat_Dinner": "Eat",
+        "Wash_Breakfast_Dishes": "Wash_Dishes",
+        "Wash_Lunch_Dishes": "Wash_Dishes",
+        "Wash_Dinner_Dishes": "Wash_Dishes",
+        "Work_At_Table": "Work",
+        "Work_At_Desk": "Work",
+        "Toilet": "Personal_Hygiene",
+        "Groom": "Personal_Hygiene",
+    },
+    
+    "hh130":
+    {
+    "Cook_Breakfast": "Cook",
+    "Cook_Lunch": "Cook",
+    }
+                                                                   }
+anchor_labels = ['Bathe', 'Enter_Home', 'Wash_Dishes', 'Relax', 'Work', 'Sleep', 'Leave_Home', 'Cook', 'Eat', 'Personal_Hygiene', 'Bed_Toilet_Transition', "Other_Activity"]
+dropping_labels = ['Work_On_Computer', 'Work', 'Take_Medicine', 'Work_At_Desk',
+        'Go_To_Sleep', 'Wake_Up', 'Exercise', 'Nap', 'Laundry', 'r1.Sleep',
+       'r1.Cook_Breakfast', 'r2.Personal_Hygiene', 'r2.Eat_Breakfast',
+       'r2.Dress']
 
 # datasets = ["./hh_dataset/ann_dataset/hh101.ann.txt", "./hh_dataset/ann_dataset/hh102.ann.txt"]
-datasets = ["./hh_dataset/ann_dataset/hh102.ann.txt"]
+datasets = [f"./hh_dataset/hh{str(i)}/hh{str(i)}.ann.txt" for i in range(101, 131) if i != 124]
 
 datasetsNames = [i.split('/')[-1].split('.')[0] for i in datasets]
 
@@ -230,7 +382,7 @@ def load_dataset(filename):
             f_info = line.decode().split('\t')  # find fields
             try:
                 # TODO Think weather to include the light sensor
-                if 'M' == f_info[1][0] or 'D' == f_info[1][0] or 'T' == f_info[1][0]:
+                if 'M' == f_info[1][0] or 'D' == f_info[1][0] or 'Control4-Light' == f_info[5]:
                     # choose only M D T sensors, avoiding unexpected errors
                     # if not ('.' in str(np.array(f_info[0])) + str(np.array(f_info[1]))):
                     #     # Avoid errors at the timestamp
@@ -254,7 +406,8 @@ def load_dataset(filename):
                         #     activity = ''
                         activities.append(des)
 
-            except IndexError:
+            except (IndexError, ValueError) as e:
+                print(e)
                 print(i, line)
     features.close()
     # dictionaries: assigning keys to values
@@ -290,56 +443,112 @@ def load_dataset(filename):
             count += 1
             dictObs[key + "OPEN"] = count
             count += 1
-        if "T" in key:
-            for temp in range(0, int((max(temperature) - min(temperature)) * 2) + 1):
-                dictObs[key + str(float(temp / 2.0) + min(temperature))] = count + temp
+        if "LS" in key:
+            dictObs[key + "OFF"] = count
+            count += 1
+            dictObs[key + "ON"] = count
+            count += 1
 
     XX = []
     YY = []
     X = []
     Y = []
+    TT = []
+    T = []
     # XX: create dictionary for sensors in embedded number from the dictObs dict
     # YY: The corresponding acitivity index
     for kk, s in enumerate(sensors):
-        if "T" in s:
-            XX.append(dictObs[s + str(round(float(values[kk]), 1))])
+        if "L" in s:
+            try:
+                if int(values[kk]) > 50:
+                    XX.append(dictObs[s + 'ON'])
+                else:
+                    XX.append(dictObs[s + 'OFF'])
+            except ValueError:
+                continue
         else:
+            if kk >= len(values):
+                print(kk)
+                continue
+            if (s + str(values[kk])) not in dictObs.keys():
+                continue
             XX.append(dictObs[s + str(values[kk])])
         YY.append(dictActivities[activities[kk]])
+        TT.append(timestamps[kk])
+
+    inverse_dictActivities = {v: k for k, v in dictActivities.items()}
 
     x = []
+    t = []
     # x: the list containing the corresponding sensor sequence for activities at i
     # y: the list containing activities sequence
     for i, y in enumerate(YY):
         if i == 0:
-            Y.append(y)
-            x = [XX[i]]
+            if (inverse_dictActivities[y] not in dropping_labels):
+                Y.append(y)
+                x = [XX[i]]
+                t = [TT[i]]
         if i > 0:
             if y == YY[i - 1]:
                 x.append(XX[i])
+                t.append(TT[i])
             else:
-                Y.append(y)
-                X.append(x)
-                x = [XX[i]]
+                if (inverse_dictActivities[y] not in dropping_labels):
+                    Y.append(y)
+                    X.append(x)
+                    T.append((t[0], t[-1]))
+                    x = [XX[i]]
+                    t = [TT[i]]
+                else:
+                    x = []
+                    t = [TT[i]]
         if i == len(YY) - 1:
-            if y != YY[i - 1]:
-                Y.append(y)
+            Y.append(y)
             X.append(x)
-    return X, Y, dictActivities
+            T.append((t[0], t[-1]))
+    if len(Y) == len(X) + 1:
+        Y = Y[:-1]
+    assert len(X) == len(Y), f"X: {len(X)}, Y: {len(Y)}"
+    assert len(X) == len(T), f"X: {len(X)}, T: {len(T)}"
+    assert len(Y) == len(T), f"Y: {len(Y)}, T: {len(T)}"
+
+    print(dictActivities)
+    return X, Y, dictActivities, T, dictObs
 
 
-def convertActivities(X, Y, dictActivities, mapping, cookActivities):
+def convertActivities(X, Y, dictActivities, mapping):
     Yf = Y.copy()
     Xf = X.copy()
     activities = {}
+    count = 0
     for i, y in enumerate(Y):
         # convertact = [key for key, value in dictActivities.items() if value == y][0]
         # Yf[i] = activitiesList.index(convertact)
         # activities[convertact] = Yf[i]
         convertact = [key for key, value in dictActivities.items() if value == y][0]
         activity = (mapping[convertact]) if (convertact in mapping) else convertact
-        Yf[i] = int(cookActivities[activity] - offset)
-        activities[activity] = Yf[i]
+        if activity not in activities:
+            activities[activity] = count
+            count += 1
+        Yf[i] = activities[activity]
+
+    inverted_activities = {v: k for k, v in activities.items()}
+
+    assert len(Xf) == len(Yf), f"Xf: {len(Xf)}, Yf: {len(Yf)}"
+
+    Xf = [x for i, x in enumerate(Xf) if inverted_activities[Yf[i]] in anchor_labels]
+    Yf = [y for i, y in enumerate(Yf) if inverted_activities[y] in anchor_labels]
+
+    count = 0
+    new_actvities = {}
+    for i, y in enumerate(Yf):
+        activity = inverted_activities[y]
+        if activity not in new_actvities:
+            new_actvities[activity] = count
+            count += 1
+        Yf[i] = new_actvities[activity]
+    
+    activities = new_actvities
 
     return Xf, Yf, activities
 
@@ -348,12 +557,12 @@ if __name__ == '__main__':
     for filename in datasets:
         datasetName = filename.split("/")[-1].split('.')[0]
         print('Loading ' + datasetName + ' dataset ...')
-        X, Y, dictActivities = load_dataset(filename)
+        X, Y, dictActivities, T, dictOps = load_dataset(filename)
 
         X, Y, dictActivities = convertActivities(X, Y, dictActivities,
-                                                 mappingActivities[datasetName],
-                                                 cookActivities[datasetName])
+                                                 mapping=mappingActivities[datasetName])
 
+        print(dictActivities)
         print(sorted(dictActivities, key=dictActivities.get))
         print("n° instances post-filtering:\t" + str(len(X)))
 
@@ -362,6 +571,7 @@ if __name__ == '__main__':
         X = np.array(X, dtype=object)
         Y = np.array(Y, dtype=object)
 
+        assert len(set(Y)) == len(dictActivities)
         X = sequence.pad_sequences(X, maxlen=max_lenght, dtype='int32')
         if not os.path.exists('npy'):
             os.makedirs('npy')
@@ -369,6 +579,7 @@ if __name__ == '__main__':
         np.save('./npy/' + datasetName + '-x.npy', X)
         np.save('./npy/' + datasetName + '-y.npy', Y)
         np.save('./npy/' + datasetName + '-labels.npy', dictActivities)
+        np.save('./npy/' + datasetName + '-timestamps.npy', T)
 
 
 def getData(datasetName):
@@ -379,8 +590,9 @@ def getData(datasetName):
     X = np.load('./npy/' + datasetName + '-x.npy')
     Y = np.load('./npy/' + datasetName + '-y.npy')
     dictActivities = np.load('./npy/' + datasetName + '-labels.npy').item()
+    T = np.load('./npy/' + datasetName + '-timestamps.npy')
 
     # restore np.load for future normal usage
     np.load = np_load_old
 
-    return X, Y, dictActivities
+    return X, Y, dictActivities, T

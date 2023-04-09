@@ -14,6 +14,8 @@ import data_hh
 import models
 import sys
 import os
+import pandas as pd
+import time
 
 # fix random seed for reproducibility
 seed = 7
@@ -30,7 +32,8 @@ if __name__ == '__main__':
 
     print(data_hh.datasetsNames)
     for dataset in data_hh.datasetsNames:
-        X, Y, dictActivities = data_hh.getData(dataset)
+
+        X, Y, dictActivities, T = data_hh.getData(dataset)
 
         Y = Y.astype('int') 
 
@@ -38,9 +41,11 @@ if __name__ == '__main__':
         cvscores = []
         modelname = ''
         tsv = TimeSeriesSplit(n_splits=3)
-        kfold = StratifiedKFold(n_splits=3, shuffle=True, random_state=seed)
+        kfold = StratifiedKFold(n_splits=3)
         k = 0
-        for train, test in tsv.split(X, Y):
+        for train, test in kfold.split(X, Y):
+            start_time = time.time()
+
             print('X_train shape:', X[train].shape)
             print('y_train shape:', Y[train].shape)
 
@@ -56,6 +61,10 @@ if __name__ == '__main__':
                 X_train_input = X[train]
                 X_test_input = X[test]
             no_activities = len(dictActivities)
+
+            print(no_activities)
+            target_names = sorted(dictActivities, key=dictActivities.get)
+            print(target_names)
 
             if args_model == 'LSTM':
                 model = models.get_LSTM(input_dim, units, data_hh.max_lenght, no_activities, dropout=dropout)
@@ -76,16 +85,22 @@ if __name__ == '__main__':
             # sys.exit(1)
             modelname = model.name
 
-            checkpoint_filepath = './tmp/checkpoint/'
+            checkpoint_filepath = './tmp/checkpoint1/'
+            output_dir = checkpoint_filepath + model.name + '-' + dataset + '_merged/'
+            # check if the directory exists
+            os.makedirs(output_dir, exist_ok=True)
 
-            currenttime = datetime.utcnow().strftime('%Y%m%d-%H%M%S')
-            checkpoint_filepath += model.name + '-' + str(currenttime) + '/'
-            os.mkdir(checkpoint_filepath)
+            output_dir = output_dir + 'fold' + str(k + 1) + '/'
+            os.makedirs(output_dir, exist_ok=True)
+
+            # currenttime = datetime.utcnow().strftime('%Y%m%d-%H%M%S')
+            # checkpoint_filepath += model.name + '-' + str(currenttime) + '/'
+            # os.mkdir(checkpoint_filepath)
 
             csv_logger = CSVLogger(
-                checkpoint_filepath + model.name + '-' + dataset + '-fold' + str(k + 1) + '.csv')
+                output_dir + model.name + '-' + dataset + '-fold' + str(k + 1) + '.csv')
             model_checkpoint = ModelCheckpoint(
-                checkpoint_filepath + model.name + '-' + dataset + '-fold' + str(k + 1) + '.hdf5',
+                output_dir + model.name + '-' + dataset + '-fold' + str(k + 1) + '.hdf5',
                 monitor='val_accuracy',
                 mode='max',
                 save_best_only=True)
@@ -105,17 +120,40 @@ if __name__ == '__main__':
             print('%s: %.2f%%' % (model.metrics_names[1], scores[1] * 100))
 
             print('Report:')
-            target_names = sorted(dictActivities, key=dictActivities.get)
+            # target_names = sorted(dictActivities, key=dictActivities.get)
 
             predictions = model.predict(X_test_input, batch_size=64)
-            print(predictions)
+            print(predictions.shape)
             classes = np.argmax(predictions, axis=1)
 
+
             # TODO modify the predict result
-            print(classification_report(list(Y[test]), classes, target_names=target_names))
+            print(classification_report(list(Y[test]), classes, labels=list(range(len(target_names))),  target_names=target_names))
             print('Confusion matrix:')
             labels = list(dictActivities.values())
             print(confusion_matrix(list(Y[test]), classes, labels=labels))
+
+            # savethe confusion matrix
+            pd.DataFrame(confusion_matrix(list(Y[test]), classes, labels=labels)).to_csv(
+                output_dir + 'confusion_matrix.csv')
+            
+            # save the classification report
+            pd.DataFrame(classification_report(list(Y[test]), classes, labels=list(range(len(target_names))),  target_names=target_names,
+                                                  output_dict=True)).transpose().to_csv(
+                output_dir + 'classification_report.csv')
+            
+            # save the predictions using npy
+            np.save(output_dir + 'predictions.npy', predictions)
+            # save the gold labels using npy
+            np.save(output_dir + 'gold_labels.npy', Y[test])
+
+            # Save the predictions timestamp
+            np.save(output_dir + 'predictions_timestamp.npy', T[test])
+
+            end_time = time.time()
+            # measure the time
+            with open(output_dir + 'time.txt', 'w') as f:
+                f.write(str(end_time - start_time) + ' seconds\n')
 
             cvaccuracy.append(scores[1] * 100)
             cvscores.append(scores)
