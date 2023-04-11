@@ -306,9 +306,9 @@ if __name__ == '__main__':
         X = np.array(X, dtype=object)
         Y = np.array(Y, dtype=object)
 
-        X = sequence.pad_sequences(X, maxlen=max_lenght, dtype='int32')
-        if not os.path.exists('npy'):
-            os.makedirs('npy')
+        # X = sequence.pad_sequences(X, maxlen=max_lenght, dtype='int32')
+        # if not os.path.exists('npy'):
+        #     os.makedirs('npy')
 
         np.save('./npy/' + datasetName + '-x.npy', X)
         np.save('./npy/' + datasetName + '-y.npy', Y)

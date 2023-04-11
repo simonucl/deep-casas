@@ -79,7 +79,7 @@ def preprocess_features(features, method) -> np.ndarray:
         return features
     return np.array([])
 
-def calculate_metrics(pred, target, threshold=0.1):
+def calculate_metrics(pred, target, threshold=0.5):
     pred = np.array(pred > threshold, dtype=float)
     return {'micro/precision': precision_score(y_true=target, y_pred=pred, average='micro'),
             'micro/recall': recall_score(y_true=target, y_pred=pred, average='micro'),
@@ -127,7 +127,6 @@ def main(args):
     batch_size = 32
 
     tsv = TimeSeriesSplit(n_splits=3)
-    kfold = KFold(n_splits=3)
     # Keep track of losses for plotting
     current_loss = 0
     all_losses = []
@@ -143,7 +142,7 @@ def main(args):
     if args.feature_encoding == '1d_cnn':
         cnn_weights = []
 
-    for fold, split in enumerate(list(kfold.split(processed_features, activities))):
+    for fold, split in enumerate(list(tsv.split(processed_features, activities))):
 
         results_dict = []
 
@@ -284,7 +283,7 @@ def main(args):
             input_dim = processed_features[0].shape[0] * processed_features[0].shape[1] 
             rnn = Joint_learning(None, input_dim, n_hidden, n_categories, 64).to(device)
             print(rnn.to(device))
-            learning_rate = 0.001
+            learning_rate = 0.0005
             optimizer = optim.Adam(rnn.parameters(),lr=learning_rate, weight_decay=1e-5)
 
             train, test = split
@@ -321,7 +320,6 @@ def main(args):
             train_features, train_labels, train_times = torch.tensor(X_train, dtype=torch.float32), torch.tensor(y_train, dtype=torch.float32), torch.tensor(t_train, dtype=torch.float32)
             dev_features, dev_labels, dev_times = torch.tensor(X_test, dtype=torch.float32), torch.tensor(y_test, dtype=torch.float32), torch.tensor(t_test, dtype=torch.float32)
             
-
             for iter in trange(1, n_iters + 1):
                 train_dataset = DataLoader(ActivityDataset(train_features, train_labels, train_times), batch_size=args.batch, shuffle=False)
                 dev_dataset = DataLoader(ActivityDataset(dev_features, dev_labels, dev_times), batch_size=len(y_test), shuffle=False)
@@ -350,7 +348,7 @@ def main(args):
                 validation_loss = None
                 #scheduler.step()
 
-                for dev_tensor, dev_activities in dev_dataset:
+                for dev_tensor, dev_activities, dev_times in dev_dataset:
                     dev_tensor = dev_tensor.to(device)
                     dev_labels = dev_activities.to(device)
                     if len(dev_labels.shape) < 2:
@@ -360,7 +358,7 @@ def main(args):
                     with torch.no_grad():
                         prediction, logits = rnn(dev_tensor)
                         
-                        pred = prediction.cpu().detach().numpy().round()
+                        pred = logits.cpu().detach().numpy()
 
                         validation_loss = criterion(logits, dev_labels)
                         result = calculate_metrics(pred, dev_activities.cpu().numpy())
@@ -368,13 +366,14 @@ def main(args):
                         #backprop
                         if result['macro/f1'] > best_f1_score:
                             best_f1_score = result['macro/f1']
-                            best_classification_report = result
+                            
+                            best_classification_report = classification_report(dev_activities.cpu(), np.array(pred > 0.5, dtype=float), digits=4, target_names=list(activitiy_mapping.keys())[:-1], output_dict=True)
                             best_epoch = iter
                             best_validation_loss = validation_loss
 
                     if iter%print_every == 0:
                         accur.append(result)
-                        
+                        print(classification_report(dev_activities.cpu(), np.array(pred > 0.5, dtype=float), digits=4, output_dict=True, target_names=list(activitiy_mapping.keys())[:-1]))
                         # result_file.write("epoch {}\tloss : {}\t accuracy : {}\n".format(iter,loss,acc))
                         print("epoch {}\tloss : {}\t accuracy : {}".format(iter,validation_loss,result))
                         # print(classification_report(dev_activities, pred, digits=4))
@@ -389,7 +388,7 @@ def main(args):
                     all_losses.append(current_loss / plot_every)
                     current_loss = 0
             # result_file.write(str(best_classification_report) + '\n')
-            pd.DataFrame(best_classification_report).round(4).to_csv(result_file + 'multi-label.tsv', sep='\t')
+            pd.DataFrame(best_classification_report).T.round(4).to_csv(new_result_file + '/report.txt', sep='\t')
 
         else:
             n_categories = 1
@@ -579,18 +578,18 @@ def main(args):
                                     'accuracy': best_classification_report['accuracy']})
             # result_file.write(str(best_classification_report) + '\n')
 
-        end = time.time()
-        with open(os.path.join(new_result_file, 'time.txt'), 'w') as f:
-            f.write(str(end - start))
+            end = time.time()
+            with open(os.path.join(new_result_file, 'time.txt'), 'w') as f:
+                f.write(str(end - start))
 
-        pd.DataFrame(results_dict).round(4).to_csv(os.path.join(new_result_file, 'report.txt'), sep='\t')
-        np.save(os.path.join(new_result_file, 'predictions.npy'), np.array(ensemble_model_results))
-        np.save(os.path.join(new_result_file, 'activities.npy'), y_test)
-        np.save(os.path.join(new_result_file, 'losses.npy'), np.array(val_losses))
-        pd.DataFrame(calculate_metrics(pd.DataFrame(map(lambda x : list(x), np.array(ensemble_model_results)[:y_test.shape[1]])).T.to_numpy(), y_test), index=[0]).to_csv(os.path.join(new_result_file, 'report1.txt'), sep='\t')
-        if args.feature_encoding == '1d_cnn':
-            np.save(os.path.join(new_result_file, 'cnn_weight.npy'), np.array(cnn_weights))
-    return models
+            pd.DataFrame(results_dict).round(4).to_csv(os.path.join(new_result_file, 'report.txt'), sep='\t')
+            np.save(os.path.join(new_result_file, 'predictions.npy'), np.array(ensemble_model_results))
+            np.save(os.path.join(new_result_file, 'activities.npy'), y_test)
+            np.save(os.path.join(new_result_file, 'losses.npy'), np.array(val_losses))
+            pd.DataFrame(calculate_metrics(pd.DataFrame(map(lambda x : list(x), np.array(ensemble_model_results)[:y_test.shape[1]])).T.to_numpy(), y_test), index=[0]).to_csv(os.path.join(new_result_file, 'report1.txt'), sep='\t')
+            if args.feature_encoding == '1d_cnn':
+                np.save(os.path.join(new_result_file, 'cnn_weight.npy'), np.array(cnn_weights))
+        # return models
     
     def multi_label_train(X_train, X_test, y_train, y_test, models):
         batch_size = 16

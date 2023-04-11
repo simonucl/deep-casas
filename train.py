@@ -41,9 +41,8 @@ if __name__ == '__main__':
         cvscores = []
         modelname = ''
         tsv = TimeSeriesSplit(n_splits=3)
-        kfold = StratifiedKFold(n_splits=3)
         k = 0
-        for train, test in kfold.split(X, Y):
+        for train, test in tsv.split(X, Y):
             start_time = time.time()
 
             print('X_train shape:', X[train].shape)

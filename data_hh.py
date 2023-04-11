@@ -355,14 +355,14 @@ mappingActivities = {
     "Cook_Lunch": "Cook",
     }
                                                                    }
-anchor_labels = ['Bathe', 'Enter_Home', 'Wash_Dishes', 'Relax', 'Work', 'Sleep', 'Leave_Home', 'Cook', 'Eat', 'Personal_Hygiene', 'Bed_Toilet_Transition', "Other_Activity"]
+anchor_labels = ['Bathe', 'Enter_Home', 'Wash_Dishes', 'Relax', 'Work', 'Sleep', 'Leave_Home', 'Cook', 'Eat', 'Personal_Hygiene', 'Bed_Toilet_Transition']
 dropping_labels = ['Work_On_Computer', 'Work', 'Take_Medicine', 'Work_At_Desk',
         'Go_To_Sleep', 'Wake_Up', 'Exercise', 'Nap', 'Laundry', 'r1.Sleep',
        'r1.Cook_Breakfast', 'r2.Personal_Hygiene', 'r2.Eat_Breakfast',
        'r2.Dress']
 
 # datasets = ["./hh_dataset/ann_dataset/hh101.ann.txt", "./hh_dataset/ann_dataset/hh102.ann.txt"]
-datasets = [f"./hh_dataset/hh{str(i)}/hh{str(i)}.ann.txt" for i in range(101, 131) if i != 124]
+datasets = [f"./hh_dataset/hh{str(i)}/hh{str(i)}.ann.txt" for i in range(115, 116) if i != 124]
 
 datasetsNames = [i.split('/')[-1].split('.')[0] for i in datasets]
 

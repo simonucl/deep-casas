@@ -370,8 +370,9 @@ dropping_labels = ['Work_On_Computer', 'Take_Medicine', 'Work_At_Desk',
        'r1.Cook_Breakfast', 'r2.Personal_Hygiene', 'r2.Eat_Breakfast',
        'r2.Dress']
 
-FTWs = [720, 540, 360, 180, 60, 30, 15, 5, 3, 2, 1, 0, 0]
+FTWs = [720, 360, 180, 60, 30, 15, 5, 3, 2, 1, 0, 0]
 FIB_FTWs = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89][::-1]
+FIB_FTWs = FTWs
 FIB_PLUS_FTWs = [0, 1, 1, 2, 3, 5]
 
 ESTWs = [12*(i) for i in range(13)]
@@ -481,7 +482,7 @@ def computing_feature_wo(input_file, delta=20):
 
 def computing_feature(args):
     if args.merged:
-        anchor_labels = ['Bathe', 'Enter_home', 'Wash_Dishes', 'Relax', 'Work', 'Sleep', 'Leave_home', 'Cook', 'Eat', 'Personal_Hygiene', 'Bed_Toilet_Transition']
+        anchor_labels = ['Bathe', 'Enter_Home', 'Wash_Dishes', 'Relax', 'Work', 'Sleep', 'Leave_Home', 'Cook', 'Eat', 'Personal_Hygiene', 'Bed_Toilet_Transition']
     else:
         anchor_labels = None
         

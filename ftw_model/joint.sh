@@ -2,9 +2,12 @@ encoding_methods=('mean_with_weight' '1d_cnn')
 encoding_methods=('1d_cnn')
 encoding_methods=('joint')
 
+data_extracion_methods=('True' 'False')
+
 batch_size=(10)
 
 deltas=(10)
+
 # encoding_methods=('1d_cnn')
 for ((i=1; i<=30; i++))
 do
@@ -18,19 +21,16 @@ do
     #     continue
     # fi
     
-    # run only when i == 2
-    if (($i != 1)); then
-        continue
-    fi
+    # skip if data_extraction_method == True and i is between 1 and 5
 
     echo $i1
 # python extract_feature.py --input "../hh_dataset/hh1$i1/hh1$i1.ann.txt" --delta 20 --window ESTWs --output "../hh_dataset/hh_npy/estw_hh1$i1.npy"
 # python extract_feature.py --input "../hh_dataset/hh1$i1/hh1$i1.ann.txt" --delta 20 --window SESTWs --output "../hh_dataset/hh_npy/sestw_hh1$i1.npy"
     for delta in ${deltas[@]}; do
-        # python extract_feature.py --input "../hh_dataset/hh1$i1/hh1$i1.ann.txt" --delta ${delta} --window FIB_FTWs --output "../hh_dataset/hh_npy/fib_hh1$i1.npy"
+        python extract_feature.py --input "../hh_dataset/hh1$i1/hh1$i1.ann.txt" --delta ${delta} --window FIB_FTWs --output "../hh_dataset/hh_npy/fib_hh1$i1.npy"
         for feature_encoding in ${encoding_methods[@]}; do
             for batch in ${batch_size[@]}; do
-                python train.py --model BiLSTM --features ../hh_dataset/hh_npy/fib_hh1${i1}_feature.npy --activities ../hh_dataset/hh_npy/fib_hh1${i1}_activity.npy --feature_encoding ${feature_encoding} --delta ${delta} --file_ext '_merged_final' --batch ${batch}
+                python train.py --model BiLSTM --features ../hh_dataset/hh_npy/fib_hh1${i1}_feature.npy --activities ../hh_dataset/hh_npy/fib_hh1${i1}_activity.npy --feature_encoding ${feature_encoding} --delta ${delta} --file_ext '_unmerged' --batch ${batch}
             done
         done
     done

@@ -14,7 +14,7 @@ class LSTM(nn.Module):
         super(LSTM,self).__init__()
         self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
         self.output_dim = output_dim
-        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional)
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=True, bidirectional=is_bidirectional)
         self.time2vec = SineActivation(1, input_dim)
 
         self.fc = nn.Linear(hidden_dim,output_dim)
@@ -78,7 +78,7 @@ class LSTM_1d_2(nn.Module):
         # nn.init.normal_(self.softconv, 0, 1)
         self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
         self.output_dim = output_dim
-        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=True, bidirectional=is_bidirectional, dropout=0.4)
         self.fc = nn.Linear(hidden_dim,output_dim)
         self.sigmoid = nn.Sigmoid()
         self.bn = nn.BatchNorm1d(10)
@@ -112,7 +112,7 @@ class LSTM_1d_3(nn.Module):
         # nn.init.normal_(self.softconv, 0, 1)
         self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
         self.output_dim = output_dim
-        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=True, bidirectional=is_bidirectional, dropout=0.4)
         self.fc = nn.Linear(hidden_dim,output_dim)
         self.sigmoid = nn.Sigmoid()
         self.bn = nn.BatchNorm1d(10)
@@ -148,7 +148,7 @@ class LSTM_1d_4(nn.Module):
         # nn.init.normal_(self.softconv, 0, 1)
         self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
         self.output_dim = output_dim
-        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=True, bidirectional=is_bidirectional, dropout=0.4)
         self.fc = nn.Linear(hidden_dim,output_dim)
         self.sigmoid = nn.Sigmoid()
         self.bn = nn.BatchNorm1d(10)
@@ -185,7 +185,7 @@ class LSTM_1d_5(nn.Module):
         # nn.init.normal_(self.softconv, 0, 1)
         self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
         self.output_dim = output_dim
-        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=True, bidirectional=is_bidirectional, dropout=0.4)
         self.fc = nn.Linear(hidden_dim,output_dim)
         self.sigmoid = nn.Sigmoid()
         self.bn = nn.BatchNorm1d(10)
@@ -221,7 +221,7 @@ class LSTM_1d_6(nn.Module):
         # nn.init.normal_(self.softconv, 0, 1)
         self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
         self.output_dim = output_dim
-        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=True, bidirectional=is_bidirectional, dropout=0.4)
         self.fc = nn.Linear(hidden_dim,output_dim)
         self.sigmoid = nn.Sigmoid()
         self.bn = nn.BatchNorm1d(10)
@@ -256,7 +256,7 @@ class LSTM_1d_7(nn.Module):
         # nn.init.normal_(self.softconv, 0, 1)
         self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
         self.output_dim = output_dim
-        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=True, bidirectional=is_bidirectional, dropout=0.4)
         self.fc = nn.Linear(hidden_dim,output_dim)
         self.sigmoid = nn.Sigmoid()
         self.bn = nn.BatchNorm1d(10)
@@ -290,7 +290,7 @@ class LSTM_1d_8(nn.Module):
         # nn.init.normal_(self.softconv, 0, 1)
         self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
         self.output_dim = output_dim
-        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=True, bidirectional=is_bidirectional, dropout=0.4)
         self.fc = nn.Linear(hidden_dim,output_dim)
         self.sigmoid = nn.Sigmoid()
         self.bn = nn.BatchNorm1d(10)
@@ -324,7 +324,7 @@ class LSTM_1d_9(nn.Module):
         # nn.init.normal_(self.softconv, 0, 1)
         self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
         self.output_dim = output_dim
-        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=True, bidirectional=is_bidirectional, dropout=0.4)
         self.fc = nn.Linear(hidden_dim,output_dim)
         self.sigmoid = nn.Sigmoid()
         self.bn = nn.BatchNorm1d(10)
@@ -358,7 +358,7 @@ class LSTM_1d_10(nn.Module):
         # nn.init.normal_(self.softconv, 0, 1)
         self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
         self.output_dim = output_dim
-        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=True, bidirectional=is_bidirectional, dropout=0.4)
         self.fc = nn.Linear(hidden_dim,output_dim)
         self.sigmoid = nn.Sigmoid()
         self.bn = nn.BatchNorm1d(10)
@@ -383,11 +383,17 @@ class Joint_learning(nn.Module):
         self.lstm = nn.LSTM(input_dim, hidden_dim, 2, batch_first=True, dropout=0.4)
         self.lstm_dense = nn.Linear(hidden_dim, fusion_dim)
 
-        self.cnn1 = nn.Conv1d(input_dim, 64, kernel_size=3, stride=1)
+        # implement 1d cnn for feature vector with input_dim * 12 features, for 64 filters and 3 kernel size
+        feature = input_dim // 12
+        self.cnn1 = nn.Conv1d(12, 64, kernel_size=3, stride=1)
         self.cnn2 = nn.Conv1d(64, 64, kernel_size=3, stride=1)
-        self.cnn_dense = nn.Linear(64, fusion_dim)
+        self.pool1 = nn.MaxPool1d(kernel_size=2)
+        self.dropout = nn.Dropout(0.4)
 
-        self.shared_fc = nn.Linear(fusion_dim, fusion_dim)
+        cnn_out_dim = (feature - 4) // 2
+        self.cnn_dense = nn.Linear(64 * cnn_out_dim, fusion_dim)
+
+        self.shared_fc = nn.Linear(fusion_dim * 2, fusion_dim)
         self.relu = nn.ReLU()
         self.fc = nn.Linear(fusion_dim, output_dim)
         self.softmax = nn.Softmax(dim=1)
@@ -395,21 +401,27 @@ class Joint_learning(nn.Module):
     def forward(self, inputs):
         # x = self.bn(inputs)
         # flatten inputs
-        print(inputs.shape)
-        inputs = inputs.view(inputs.shape[0], -1)
-        lstm_out, (hn, cn) = self.lstm(inputs)
+        
+        lstm_inputs = inputs.view(inputs.shape[0], -1)
+
+        lstm_out, (hn, cn) = self.lstm(lstm_inputs)
         lstm_out = self.lstm_dense(lstm_out)
 
         # stack itself 3 times
-        inputs = torch.stack([inputs, inputs, inputs], dim=-1)
-        print(inputs.shape)
-
+        # inputs = torch.stack([inputs, inputs, inputs], dim=-1)
         cnn_out = self.cnn1(inputs)
-        print(cnn_out.shape)
+        cnn_out = self.relu(cnn_out)
         cnn_out = self.cnn2(cnn_out)
+        cnn_out = self.relu(cnn_out)
+
+        cnn_out = self.pool1(cnn_out)
+        cnn_out = self.dropout(cnn_out)
+
+        cnn_out = cnn_out.view(cnn_out.shape[0], -1)
         cnn_out = self.cnn_dense(cnn_out)
 
-        out = torch.add(lstm_out, cnn_out)
+        # fuse lstm_out and cnn_out
+        out = torch.concat([lstm_out, cnn_out], dim=1)
         out = self.relu(self.shared_fc(out))
         out = self.fc(out)
 
@@ -431,7 +443,7 @@ class Multi_out_LSTM(nn.Module):
 
         self.hidden_dim = hidden_dim // 2 if is_bidirectional else hidden_dim
         self.output_dim = output_dim
-        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=False, bidirectional=is_bidirectional, dropout=0.4)
+        self.lstm = nn.LSTM(input_dim,self.hidden_dim,layer_num,batch_first=True, bidirectional=is_bidirectional, dropout=0.4)
         self.out = nn.Sequential(
             nn.Dropout(p=0.3),
             nn.Linear(in_features=hidden_dim, out_features=output_dim)

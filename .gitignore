@@ -2,4 +2,11 @@ venv/*
 dataset/*
 .idea/*
 *.csv
+*.zip
 *.h5
+tmp/checkpoint
+*__pycache__*
+hh_dataset/hh1*
+hh_dataset/hh_npy/*
+ftw_model/result*/*
+ftw_model/*result/
